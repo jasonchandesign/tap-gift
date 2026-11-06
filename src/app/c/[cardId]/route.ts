@@ -1,8 +1,12 @@
 import { appUrl, lookupCard } from "@/lib/gifts";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ cardId: string }> }) {
+export async function GET(_request: Request, { params }: RouteContext<"/c/[cardId]">) {
   const { cardId } = await params;
   const card = await lookupCard(cardId);
-  const target = card.state === "ready" ? `/g/${card.token}` : "/card-empty";
-  return Response.redirect(`${appUrl()}${target}`, 307);
+  const targets = {
+    gift: card.state === "gift" ? `/g/${card.token}` : "",
+    blank: `/new?card=${cardId}`,
+    unknown: "/card-empty",
+  };
+  return Response.redirect(`${appUrl()}${targets[card.state]}`, 307);
 }

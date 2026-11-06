@@ -11,7 +11,7 @@ const SUGGESTIONS = [
   "Science experiments and slime",
 ];
 
-export function NewGiftForm() {
+export function NewGiftForm({ cardId }: { cardId?: string }) {
   const router = useRouter();
   const [prompt, setPrompt] = useState(SUGGESTIONS[0]);
   const [error, setError] = useState("");
@@ -32,6 +32,7 @@ export function NewGiftForm() {
           recipientName: form.get("recipientName"),
           recipientAge: Number(form.get("recipientAge")),
           prompt,
+          cardId,
         }),
       });
       const data = await response.json();

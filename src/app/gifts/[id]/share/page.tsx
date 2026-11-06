@@ -4,11 +4,15 @@ import { Suspense } from "react";
 import { chosenGift, settleRefund } from "@/lib/checkout";
 import { selectedOptions } from "@/lib/chat";
 import { formatDollars, getGift, giftUrl, type Gift } from "@/lib/gifts";
+import { Present } from "../../../present";
 import { CancelGift } from "./cancel-gift";
-import { CardSetup } from "./card-setup";
 import { SendCard } from "./send-card";
 
 type Props = PageProps<"/gifts/[id]/share">;
+
+function Title({ children }: { children: React.ReactNode }) {
+  return <h1 className="mt-4 text-3xl font-semibold">{children}</h1>;
+}
 
 /** Loading this also retries a refund that failed earlier. */
 async function RefundNote({ gift }: { gift: Gift }) {
@@ -22,9 +26,12 @@ async function RefundNote({ gift }: { gift: Gift }) {
 async function Result({ gift }: { gift: Gift }) {
   if (gift.status === "canceled") {
     return (
-      <p className="mt-3 text-lg">
-        You canceled this gift. <RefundNote gift={gift} />
-      </p>
+      <>
+        <Title>Your gift</Title>
+        <p className="mt-3 text-lg">
+          You canceled this gift. <RefundNote gift={gift} />
+        </p>
+      </>
     );
   }
 
@@ -33,6 +40,7 @@ async function Result({ gift }: { gift: Gift }) {
 
   return (
     <>
+      <Title>Your gift</Title>
       <p className="mt-3 text-lg">
         {gift.recipient_name} chose <strong>{chosen.title}</strong>
         {Object.values(chosen.variant_choice_json).length > 0 &&
@@ -69,6 +77,7 @@ async function Share({ params }: Props) {
   if (!picks.length) {
     return (
       <>
+        <Title>Your gift</Title>
         <p className="mt-3 text-lg">
           Every gift you kept sold out before {gift.recipient_name} chose. You can get your {paid}{" "}
           back and start a new gift.
@@ -78,18 +87,36 @@ async function Share({ params }: Props) {
     );
   }
 
+  const summary = (
+    <p className="mt-3 text-soft">
+      You paid {paid}. {gift.recipient_name} will unwrap {picks.length}{" "}
+      {picks.length === 1 ? "gift" : "gifts"}
+      {pricesDiffer ? ", and you get the difference back if they choose a cheaper one." : "."}
+    </p>
+  );
+
+  if (gift.delivery === "card") {
+    return (
+      <div className="text-center">
+        <div className="mx-auto mt-6 w-40">
+          <Present wiggle />
+        </div>
+        <h1 className="mt-6 text-4xl font-semibold">Hand the card to {gift.recipient_name}</h1>
+        <p className="mt-3 text-lg">It&apos;s all set. They just tap it with a phone.</p>
+        {summary}
+        <CancelGift giftId={gift.id} recipientName={gift.recipient_name} paid={paid} />
+      </div>
+    );
+  }
+
   return (
     <>
-      <p className="mt-2 text-soft">
-        You paid {paid}. {gift.recipient_name} will unwrap {picks.length}{" "}
-        {picks.length === 1 ? "gift" : "gifts"}
-        {pricesDiffer ? ", and you get the difference back if they choose a cheaper one." : "."}
-      </p>
+      <Title>Send it to {gift.recipient_name}</Title>
+      {summary}
       <SendCard
         url={url}
         message={`${gift.giver_name} sent ${gift.recipient_name} a gift! Open it here: ${url}`}
       />
-      <CardSetup giftId={gift.id} />
       <CancelGift giftId={gift.id} recipientName={gift.recipient_name} paid={paid} />
     </>
   );
@@ -98,7 +125,6 @@ async function Share({ params }: Props) {
 export default function SharePage(props: Props) {
   return (
     <main className="mx-auto w-full max-w-xl p-6">
-      <h1 className="mt-4 text-3xl font-semibold">Your gift</h1>
       <Suspense fallback={<p className="mt-6 text-soft">Loading...</p>}>
         <Share {...props} />
       </Suspense>

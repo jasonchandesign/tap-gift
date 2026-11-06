@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "channel3:test": "node --env-file=.env scripts/channel3-search-test.mjs"
+    "channel3:test": "node --env-file=.env scripts/channel3-search-test.mjs",
+    "cards": "node scripts/make-cards.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",

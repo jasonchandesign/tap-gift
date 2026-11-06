@@ -25,6 +25,7 @@ type Props = {
   giverName: string;
   recipientName: string;
   note: string;
+  cardId: string | null;
   options: KidOption[];
   chosen: KidChosen | null;
 };
@@ -42,7 +43,12 @@ function GiftPicture({ option }: { option: { imageUrl: string } }) {
   );
 }
 
-function Done({ token, giverName, chosen }: Pick<Props, "token" | "giverName"> & { chosen: KidChosen }) {
+function Done({
+  token,
+  giverName,
+  cardId,
+  chosen,
+}: Pick<Props, "token" | "giverName" | "cardId"> & { chosen: KidChosen }) {
   const [sent, setSent] = useState(!!chosen.thankYou);
   const [error, setError] = useState("");
 
@@ -86,11 +92,16 @@ function Done({ token, giverName, chosen }: Pick<Props, "token" | "giverName"> &
           </button>
         </form>
       )}
+      {cardId && (
+        <a className="mt-6 block text-sm text-soft underline" href={`/new?card=${cardId}`}>
+          Give another gift with this card
+        </a>
+      )}
     </section>
   );
 }
 
-export function Reveal({ token, giverName, recipientName, note, options, chosen }: Props) {
+export function Reveal({ token, giverName, recipientName, note, cardId, options, chosen }: Props) {
   const [stage, setStage] = useState<"cover" | "note" | "unwrap" | "choose">("cover");
   const [remaining, setRemaining] = useState(options);
   const [index, setIndex] = useState(0);
@@ -102,7 +113,7 @@ export function Reveal({ token, giverName, recipientName, note, options, chosen 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  if (done) return <Done token={token} giverName={giverName} chosen={done} />;
+  if (done) return <Done token={token} giverName={giverName} cardId={cardId} chosen={done} />;
 
   const selectedOption = remaining.find(({ id }) => id === selected);
   const ready = !!selectedOption?.variants.every(({ name }) => choice[name]);

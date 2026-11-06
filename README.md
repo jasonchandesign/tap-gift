@@ -28,6 +28,16 @@ Set `QUERY` and `MAX_PRICE` to try other searches.
 
 MIT
 
+## Make NFC cards
+
+Each card is written once, ever. Its link stays the same, and the gift it opens changes.
+
+```bash
+npm run cards -- 10
+```
+
+This prints 10 links. Write one onto each blank card with the free NFC Tools app: Write, Add a record, URL/URI, paste the link, OK, then Write and hold the card to the phone. Don't use Lock tag, because locking is permanent.
+
 ## Before a real launch
 
 The gifter's money waits for the kid's choice, so check whether stored-value or gift-card rules apply. This doesn't affect the sandbox demo.

@@ -71,6 +71,7 @@ async function Gift({ params }: Props) {
         giverName={gift.giver_name}
         recipientName={gift.recipient_name}
         note={gift.note}
+        cardId={gift.delivery === "card" ? gift.card_id : null}
         options={picks.map((pick) => ({
           id: String(pick.id),
           title: pick.title,

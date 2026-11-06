@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS gifts (
   note text NOT NULL,
   rules_json jsonb NOT NULL,
   shipping_json jsonb,
+  card_id text,
   paypal_order_id text,
   capture_id text,
   paid_cents integer,
@@ -75,6 +76,8 @@ ALTER TABLE gifts DROP COLUMN IF EXISTS vault_id;
 ALTER TABLE gifts DROP COLUMN IF EXISTS paypal_customer_id;
 ALTER TABLE orders DROP COLUMN IF EXISTS paypal_order_id;
 ALTER TABLE orders DROP COLUMN IF EXISTS capture_id;
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS card_id text;
+UPDATE gifts g SET card_id = c.id FROM cards c WHERE c.current_gift_id = g.id AND g.card_id IS NULL;
 UPDATE gifts SET status = 'draft' WHERE status IN ('saved', 'picked');
 UPDATE gifts SET status = 'chosen' WHERE status = 'charged';
 `;

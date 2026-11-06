@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createGift, getGift } from "@/lib/gifts";
+import { cardIsFree, createGift, getGift } from "@/lib/gifts";
 import { isRateLimited } from "@/lib/rate-limit";
 import { shopTurn } from "@/lib/shopper";
 
@@ -8,6 +8,7 @@ const Body = z.object({
   recipientName: z.string().trim().min(1).max(60),
   recipientAge: z.number().int().min(1).max(17),
   prompt: z.string().trim().min(1).max(500),
+  cardId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -19,9 +20,10 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: "Please check the form and try again." }, { status: 400 });
   }
-  const { prompt, ...form } = parsed.data;
+  const { prompt, cardId, ...form } = parsed.data;
+  const freeCard = cardId && (await cardIsFree(cardId)) ? cardId : undefined;
 
-  const id = await createGift({ ...form, rules: { likes: [], avoid: [] } });
+  const id = await createGift({ ...form, cardId: freeCard, rules: { likes: [], avoid: [] } });
   const gift = await getGift(id);
 
   // The gift still exists if this fails, so the shop page can simply try again.

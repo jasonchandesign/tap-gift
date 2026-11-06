@@ -38,6 +38,8 @@ export type Gift = {
   note: string;
   rules_json: Rules;
   shipping_json: Shipping | null;
+  card_id: string | null;
+  delivery: "card" | "link";
   paypal_order_id: string | null;
   capture_id: string | null;
   paid_cents: number | null;
@@ -52,6 +54,7 @@ export type NewGift = {
   recipientName: string;
   recipientAge: number;
   rules: Rules;
+  cardId?: string;
 };
 
 export function appUrl() {
@@ -62,17 +65,13 @@ export function giftUrl(token: string) {
   return `${appUrl()}/g/${token}`;
 }
 
-export function cardUrl(cardId: string) {
-  return `${appUrl()}/c/${cardId}`;
-}
-
 export async function createGift(gift: NewGift) {
   const id = randomUUID();
   const { query } = await db();
   await query(
     `INSERT INTO gifts (id, token, giver_name, recipient_name, recipient_age, budget_cents,
-       note, rules_json)
-     VALUES ($1, $2, $3, $4, $5, $6, '', $7)`,
+       note, rules_json, card_id)
+     VALUES ($1, $2, $3, $4, $5, $6, '', $7, $8)`,
     [
       id,
       randomBytes(16).toString("hex"),
@@ -81,6 +80,7 @@ export async function createGift(gift: NewGift) {
       gift.recipientAge,
       DEFAULT_BUDGET_CENTS,
       JSON.stringify(gift.rules),
+      gift.cardId ?? null,
     ],
   );
   return id;
@@ -131,40 +131,52 @@ export async function markPaid(id: string, captureId: string, paidCents: number)
 }
 
 export type CardLookup =
-  | { state: "ready"; token: string }
-  | { state: "empty" };
+  | { state: "gift"; token: string }
+  | { state: "blank" }
+  | { state: "unknown" };
 
-/** A card has no active gift until it's linked to one that's paid. A chosen gift stays viewable. */
-export async function lookupCard(cardId: string): Promise<CardLookup> {
+/** Card links are random, so any well-formed ID is a card that may not be in the database yet. */
+function isCardId(cardId: string) {
+  return /^[\w-]{16}$/.test(cardId);
+}
+
+async function cardGift(cardId: string) {
   const { query } = await db();
   const { rows } = await query<{ token: string; status: GiftStatus }>(
     `SELECT g.token, g.status FROM cards c JOIN gifts g ON g.id = c.current_gift_id WHERE c.id = $1`,
     [cardId],
   );
-  const gift = rows[0];
-  if (!gift || gift.status === "draft" || gift.status === "canceled") return { state: "empty" };
-  return { state: "ready", token: gift.token };
+  return rows[0] ?? null;
 }
 
-export async function createCard(giftId: string) {
-  const id = randomBytes(12).toString("base64url");
-  const { query } = await db();
-  await query("INSERT INTO cards (id, current_gift_id) VALUES ($1, $2)", [id, giftId]);
-  await query("UPDATE gifts SET delivery = 'card' WHERE id = $1", [giftId]);
-  return id;
+/** A tap opens a paid or chosen gift. Otherwise the card is ready to start a new one. */
+export async function lookupCard(cardId: string): Promise<CardLookup> {
+  if (!isCardId(cardId)) return { state: "unknown" };
+  const gift = await cardGift(cardId);
+  if (gift?.status === "paid" || gift?.status === "chosen") {
+    return { state: "gift", token: gift.token };
+  }
+  return { state: "blank" };
 }
 
-/** Points an existing card at a new gift, unless the card still holds a gift in progress. */
-export async function relinkCard(cardId: string, giftId: string) {
+/** A card can take a new gift unless it holds one that's still waiting to be chosen. */
+export async function cardIsFree(cardId: string) {
+  if (!isCardId(cardId)) return false;
+  return (await cardGift(cardId))?.status !== "paid";
+}
+
+/** Puts a paid gift on its card. If someone else filled the card first, the gift stays a link. */
+export async function attachCard(cardId: string, giftId: string) {
   const { query } = await db();
   const { rows } = await query<{ id: string }>(
-    `UPDATE cards c SET current_gift_id = $2
-     WHERE c.id = $1 AND (
-       c.current_gift_id IS NULL
-       OR c.current_gift_id = $2
-       OR EXISTS (SELECT 1 FROM gifts g WHERE g.id = c.current_gift_id AND g.status IN ('chosen', 'canceled'))
-     )
-     RETURNING c.id`,
+    `INSERT INTO cards (id, current_gift_id) VALUES ($1, $2)
+     ON CONFLICT (id) DO UPDATE SET current_gift_id = $2
+     WHERE cards.current_gift_id IS NULL
+       OR cards.current_gift_id = $2
+       OR EXISTS (
+         SELECT 1 FROM gifts g WHERE g.id = cards.current_gift_id AND g.status <> 'paid'
+       )
+     RETURNING id`,
     [cardId, giftId],
   );
   if (rows.length === 0) return false;

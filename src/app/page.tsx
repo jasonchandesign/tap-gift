@@ -31,6 +31,7 @@ export default function Home() {
       <Link href="/new" className="button">
         Create a gift
       </Link>
+      <p className="text-sm text-soft">Have a Tap Gift card? Tap it with your phone to start.</p>
     </main>
   );
 }

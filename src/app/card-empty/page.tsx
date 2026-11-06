@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "No gift on this card · Tap Gift" };
+export const metadata: Metadata = { title: "Unknown card · Tap Gift" };
 
 export default function CardEmptyPage() {
   return (
     <main className="m-auto max-w-md p-8 text-center">
-      <h1 className="text-3xl font-semibold">No gift on this card yet</h1>
+      <h1 className="text-3xl font-semibold">We don&apos;t recognize this card</h1>
       <p className="mt-3 text-soft">
-        This card doesn&apos;t have an active gift. Its last gift may already be opened. The giver
-        can link it to a new one.
+        Its link doesn&apos;t look right. You can still create a gift and send it by text or
+        email.
       </p>
       <Link href="/new" className="button mt-6">
         Create a gift
