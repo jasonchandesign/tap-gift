@@ -1,7 +1,7 @@
 // Proves the riskiest step: save PayPal with $0 charged, then charge it with no buyer present.
 // Run with: npm run paypal:test
 import { randomUUID } from "node:crypto";
-import { createInterface } from "node:readline/promises";
+import { setTimeout as sleep } from "node:timers/promises";
 
 const {
   PAYPAL_CLIENT_ID,
@@ -92,9 +92,21 @@ if (!approveUrl) {
 }
 
 console.log(`\n3. Open this link and log in as the sandbox buyer:\n\n${approveUrl}\n`);
-const prompt = createInterface({ input: process.stdin, output: process.stdout });
-await prompt.question("Press Enter after you've approved and landed on example.com... ");
-prompt.close();
+console.log("Waiting up to 10 minutes for the approval...");
+let status;
+for (let i = 0; i < 200 && status !== "APPROVED"; i++) {
+  await sleep(3000);
+  const res = await fetch(`${PAYPAL_API_BASE}/v3/vault/setup-tokens/${setup.id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (data.status !== status) console.log(`   Setup token status: ${data.status ?? res.status}`);
+  status = data.status;
+}
+if (status !== "APPROVED") {
+  console.error("The setup token was never approved.");
+  process.exit(1);
+}
 
 const saved = await paypal("/v3/vault/payment-tokens", {
   token,

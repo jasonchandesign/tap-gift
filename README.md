@@ -14,7 +14,7 @@ npm run dev
 
 ## Test the PayPal vault charge
 
-This saves a sandbox buyer's PayPal with $0 charged, then charges the saved account with no buyer present.
+This saves a sandbox buyer's PayPal with $0 charged, then charges the saved account with no buyer present. Open the link it prints and log in as the sandbox buyer. The script continues once PayPal reports the approval.
 
 ```bash
 npm run paypal:test
