@@ -2,13 +2,11 @@ import {
   CheckoutPaymentIntent,
   Client,
   Environment,
-  ExperienceContextShippingPreference,
-  PaypalPaymentTokenCustomerType,
-  PaypalPaymentTokenUsageType,
   OrdersController,
-  UsagePattern,
-  VaultController,
-  VaultTokenRequestType,
+  PaymentsController,
+  PaypalExperienceUserAction,
+  PaypalWalletContextShippingPreference,
+  RefundStatus,
 } from "@paypal/paypal-server-sdk";
 import { randomUUID } from "node:crypto";
 import type { Shipping } from "./gifts";
@@ -27,71 +25,26 @@ function paypal() {
   return client;
 }
 
-function vaultApi() {
-  return new VaultController(paypal());
+function usd(cents: number) {
+  return { currencyCode: "USD", value: (cents / 100).toFixed(2) };
 }
 
-/** Starts saving a PayPal account with $0 charged. The buyer approves at the returned link. */
-export async function createSetupToken(returnUrl: string, cancelUrl: string) {
-  const { result } = await vaultApi().createSetupToken({
-    paypalRequestId: randomUUID(),
-    body: {
-      paymentSource: {
-        paypal: {
-          description: "Tap Gift saved account",
-          usagePattern: UsagePattern.Immediate,
-          usageType: PaypalPaymentTokenUsageType.Merchant,
-          customerType: PaypalPaymentTokenCustomerType.Consumer,
-          permitMultiplePaymentTokens: false,
-          experienceContext: {
-            brandName: "Tap Gift",
-            locale: "en-US",
-            shippingPreference: ExperienceContextShippingPreference.NoShipping,
-            returnUrl,
-            cancelUrl,
-          },
-        },
-      },
-    },
-  });
-
-  const approveUrl = result.links?.find((link) => link.rel === "approve")?.href;
-  if (!result.id || !approveUrl) throw new Error("PayPal returned no approval link");
-  return { setupTokenId: result.id, approveUrl };
-}
-
-/** Exchanges an approved setup token for the saved account. Safe to retry with the same token. */
-export async function savePaymentToken(setupTokenId: string) {
-  const { result } = await vaultApi().createPaymentToken({
-    paypalRequestId: setupTokenId,
-    body: {
-      paymentSource: {
-        token: { id: setupTokenId, type: VaultTokenRequestType.SetupToken },
-      },
-    },
-  });
-
-  if (!result.id) throw new Error("PayPal returned no vault ID");
-  return { vaultId: result.id, customerId: result.customer?.id ?? null };
-}
-
-/** Charges a saved account in one call. The request ID makes a retry of this order safe. */
-export async function chargeSavedAccount(charge: {
-  orderId: string;
-  vaultId: string;
+/** Starts a payment. Nothing is taken until the buyer approves and we capture the order. */
+export async function createPayment(payment: {
   amountCents: number;
-  description: string;
   shipping: Shipping;
+  returnUrl: string;
+  cancelUrl: string;
 }) {
-  const { shipping } = charge;
+  const { shipping, returnUrl, cancelUrl } = payment;
   const { result } = await new OrdersController(paypal()).createOrder({
-    paypalRequestId: charge.orderId,
+    paypalRequestId: randomUUID(),
     body: {
       intent: CheckoutPaymentIntent.Capture,
       purchaseUnits: [
         {
-          description: charge.description.slice(0, 120),
-          amount: { currencyCode: "USD", value: (charge.amountCents / 100).toFixed(2) },
+          description: "A Tap Gift",
+          amount: usd(payment.amountCents),
           shipping: {
             name: { fullName: shipping.name },
             address: {
@@ -105,13 +58,54 @@ export async function chargeSavedAccount(charge: {
           },
         },
       ],
-      paymentSource: { paypal: { vaultId: charge.vaultId } },
+      paymentSource: {
+        paypal: {
+          experienceContext: {
+            brandName: "Tap Gift",
+            locale: "en-US",
+            shippingPreference: PaypalWalletContextShippingPreference.SetProvidedAddress,
+            userAction: PaypalExperienceUserAction.PayNow,
+            returnUrl,
+            cancelUrl,
+          },
+        },
+      },
     },
   });
 
+  const approveUrl = result.links?.find(({ rel }) => rel === "payer-action")?.href;
+  if (!result.id || !approveUrl) throw new Error("PayPal returned no approval link");
+  return { orderId: result.id, approveUrl };
+}
+
+/** Takes the money for an approved order. The request ID makes a retry of this order safe. */
+export async function capturePayment(orderId: string) {
+  const { result } = await new OrdersController(paypal()).captureOrder({
+    id: orderId,
+    paypalRequestId: orderId,
+    prefer: "return=representation",
+  });
+
   const capture = result.purchaseUnits?.[0]?.payments?.captures?.[0];
-  if (result.status !== "COMPLETED" || !result.id || !capture?.id) {
+  if (result.status !== "COMPLETED" || !capture?.id || !capture.amount) {
     throw new Error(`PayPal order ended with status ${result.status}`);
   }
-  return { paypalOrderId: result.id, captureId: capture.id };
+  return { captureId: capture.id, paidCents: Math.round(Number(capture.amount.value) * 100) };
+}
+
+/** Sends money back. Repeating a request ID can't refund twice. */
+export async function refundPayment(refund: {
+  captureId: string;
+  amountCents: number;
+  requestId: string;
+}) {
+  const { result } = await new PaymentsController(paypal()).refundCapturedPayment({
+    captureId: refund.captureId,
+    paypalRequestId: refund.requestId,
+    body: { amount: usd(refund.amountCents), noteToPayer: "Your Tap Gift refund" },
+  });
+
+  const failed = result.status === RefundStatus.Failed || result.status === RefundStatus.Cancelled;
+  if (!result.id || failed) throw new Error(`PayPal refund ended with status ${result.status}`);
+  return result.id;
 }

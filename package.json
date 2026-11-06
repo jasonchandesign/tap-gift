@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "paypal:test": "node --env-file=.env scripts/paypal-vault-test.mjs",
     "channel3:test": "node --env-file=.env scripts/channel3-search-test.mjs"
   },
   "dependencies": {

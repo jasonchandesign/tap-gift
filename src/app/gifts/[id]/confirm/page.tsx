@@ -24,6 +24,8 @@ async function Confirm({ params, searchParams }: Props) {
   const picks = await selectedOptions(gift.id);
   if (!picks.length) redirect(`/gifts/${gift.id}/shop`);
 
+  const prices = picks.map((pick) => pick.price_cents);
+
   return (
     <>
       <ul className="mt-4 flex flex-col gap-1">
@@ -41,7 +43,8 @@ async function Confirm({ params, searchParams }: Props) {
         giftId={gift.id}
         giverName={gift.giver_name}
         recipientName={gift.recipient_name}
-        maxCharge={formatDollars(Math.max(...picks.map((pick) => pick.price_cents)))}
+        total={formatDollars(Math.max(...prices))}
+        pricesDiffer={new Set(prices).size > 1}
         savedNote={gift.note}
         savedShipping={gift.shipping_json}
         paypalFailed={paypal === "failed"}

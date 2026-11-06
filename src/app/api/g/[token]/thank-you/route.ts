@@ -10,7 +10,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/g/[t
 
   const { token } = await params;
   const gift = await getGiftByToken(token);
-  if (gift?.status !== "charged") {
+  if (gift?.status !== "chosen") {
     return Response.json({ error: "We couldn't find that gift." }, { status: 404 });
   }
 

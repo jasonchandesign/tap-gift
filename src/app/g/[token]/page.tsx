@@ -39,6 +39,15 @@ async function Gift({ params }: Props) {
     return <Message title="This gift isn't ready yet" body="Check back soon." />;
   }
 
+  if (gift.status === "canceled") {
+    return (
+      <Message
+        title="This gift isn't available"
+        body={`Ask ${gift.giver_name} what happened to it.`}
+      />
+    );
+  }
+
   const [picks, chosen, qr] = await Promise.all([
     selectedOptions(gift.id),
     chosenGift(gift.id),

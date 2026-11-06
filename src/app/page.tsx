@@ -7,7 +7,7 @@ export default function Home() {
       <p className="text-xl text-soft">Choosing the gift is hard. Unwrapping it shouldn&apos;t be.</p>
       <p>
         Tell us what they love, and AI narrows it down to a few great ideas. They tap the card,
-        unwrap each one, and choose. You&apos;re charged only for the one they pick.
+        unwrap each one, and choose. If they pick a cheaper one, you get the difference back.
       </p>
       <Link href="/new" className="button">
         Create a gift

@@ -7,16 +7,17 @@ type Props = {
   giftId: string;
   giverName: string;
   recipientName: string;
-  maxCharge: string;
+  total: string;
+  pricesDiffer: boolean;
   savedNote: string;
   savedShipping: Shipping | null;
   paypalFailed: boolean;
 };
 
 export function ConfirmForm(props: Props) {
-  const { giftId, giverName, recipientName, maxCharge } = props;
+  const { giftId, giverName, recipientName, total, pricesDiffer } = props;
   const [error, setError] = useState(
-    props.paypalFailed ? "We couldn't finish saving PayPal. Please try again." : "",
+    props.paypalFailed ? "We couldn't finish the payment. Please try again." : "",
   );
   const [busy, setBusy] = useState(false);
   const shipping = props.savedShipping ?? {
@@ -35,7 +36,7 @@ export function ConfirmForm(props: Props) {
     const form = new FormData(event.currentTarget);
 
     try {
-      const response = await fetch("/api/paypal/setup-token", {
+      const response = await fetch("/api/paypal/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -143,12 +144,13 @@ export function ConfirmForm(props: Props) {
         </p>
       )}
       <button type="submit" className="button" disabled={busy}>
-        {busy ? "Opening PayPal..." : "Save with PayPal"}
+        {busy ? "Opening PayPal..." : `Pay ${total} with PayPal`}
       </button>
-      <p className="text-center text-sm text-soft">
-        You&apos;re charged $0 now. PayPal charges you once, when {recipientName} chooses, up to{" "}
-        {maxCharge}.
-      </p>
+      {pricesDiffer && (
+        <p className="text-center text-sm text-soft">
+          If they choose something cheaper, you get the difference back.
+        </p>
+      )}
     </form>
   );
 }

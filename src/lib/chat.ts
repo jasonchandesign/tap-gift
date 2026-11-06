@@ -137,9 +137,10 @@ export async function savePicks(
       JSON.stringify(Object.fromEntries(sizes.map(({ name }) => [name, choice[name]]))),
     ]);
   }
-  await query("UPDATE gifts SET budget_cents = $2 WHERE id = $1 AND status = 'draft'", [
-    giftId,
-    Math.max(...rows.map((option) => option.price_cents)),
-  ]);
+  // An open PayPal order was for the old picks, so it can't be used for these.
+  await query(
+    "UPDATE gifts SET budget_cents = $2, paypal_order_id = NULL WHERE id = $1 AND status = 'draft'",
+    [giftId, Math.max(...rows.map((option) => option.price_cents))],
+  );
   return true;
 }

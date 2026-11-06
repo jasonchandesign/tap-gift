@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { getProduct } from "./channel3";
 import type { VariantChoice } from "./chat";
 import { db } from "./db";
-import type { Gift } from "./gifts";
-import { chargeSavedAccount } from "./paypal";
+import { getGift, type Gift } from "./gifts";
+import { refundPayment } from "./paypal";
 import { checkProduct, type VariantGroup } from "./rules";
 
 type ChosenOption = {
@@ -24,7 +24,7 @@ export type ChosenGift = {
   thank_you_note: string | null;
 };
 
-export type ChooseResult = "charged" | "taken" | "unavailable" | "variant" | "failed";
+export type ChooseResult = "chosen" | "taken" | "unavailable" | "variant" | "failed";
 
 /** A store can sell out after the gifter chose. If the lookup itself fails, we go ahead. */
 async function isStillAvailable(gift: Gift, option: ChosenOption) {
@@ -37,7 +37,10 @@ async function isStillAvailable(gift: Gift, option: ChosenOption) {
   }
 }
 
-/** Fulfillment is simulated: this records the order and charges PayPal, but buys nothing. */
+/**
+ * Fulfillment is simulated: this records the order, but buys nothing. The gifter has already
+ * paid, so nothing about their PayPal account can stop the kid here.
+ */
 export async function chooseGift(
   gift: Gift,
   optionId: string,
@@ -50,7 +53,7 @@ export async function chooseGift(
     [gift.id, optionId],
   );
   const option = rows[0];
-  if (!option || !gift.vault_id || !gift.shipping_json) return "failed";
+  if (!option) return "failed";
 
   // The gifter's size comes last, so nothing from the kid's page can change it.
   const choice = { ...kidChoice, ...option.variant_choice_json };
@@ -64,45 +67,55 @@ export async function chooseGift(
     return "unavailable";
   }
 
-  // Only one request can move the gift out of 'saved', so a double tap can't charge twice.
+  // One statement, so only one request can claim the gift, and a claim always has its order.
   const claimed = await query<{ id: string }>(
-    "UPDATE gifts SET status = 'picked' WHERE id = $1 AND status = 'saved' RETURNING id",
-    [gift.id],
+    `WITH claimed AS (
+       UPDATE gifts SET status = 'chosen', refund_cents = paid_cents - $3::integer
+       WHERE id = $1 AND status = 'paid' RETURNING id
+     ), choice AS (
+       UPDATE options SET variant_choice_json = $4::jsonb
+       WHERE id = $2::bigint AND EXISTS (SELECT 1 FROM claimed)
+     )
+     INSERT INTO orders (id, gift_id, option_id, amount_cents, status)
+     SELECT $5::uuid, id, $2::bigint, $3::integer, 'completed' FROM claimed
+     RETURNING id`,
+    [gift.id, option.id, option.price_cents, JSON.stringify(choice), randomUUID()],
   );
-  if (!claimed.rows.length) return "taken";
+  return claimed.rows.length ? "chosen" : "taken";
+}
 
-  await query("UPDATE options SET variant_choice_json = $2 WHERE id = $1", [
-    option.id,
-    JSON.stringify(choice),
-  ]);
-
-  const orderId = randomUUID();
-  await query(
-    `INSERT INTO orders (id, gift_id, option_id, amount_cents, status)
-     VALUES ($1, $2, $3, $4, 'pending')`,
-    [orderId, gift.id, option.id, option.price_cents],
+/** Only a gift nobody has chosen can be canceled, so this and chooseGift can't both win. */
+export async function cancelGift(giftId: string) {
+  const { query } = await db();
+  const { rows } = await query<{ id: string }>(
+    `UPDATE gifts SET status = 'canceled', refund_cents = paid_cents
+     WHERE id = $1 AND status = 'paid' RETURNING id`,
+    [giftId],
   );
+  return rows.length > 0;
+}
+
+/**
+ * Sends the gifter anything they're owed, and reports whether that's done. A failed refund stays
+ * owed, so calling this again retries it.
+ */
+export async function settleRefund(giftId: string) {
+  const gift = await getGift(giftId);
+  if (!gift?.capture_id || gift.refund_cents === 0 || gift.refund_id) return true;
 
   try {
-    const { paypalOrderId, captureId } = await chargeSavedAccount({
-      orderId,
-      vaultId: gift.vault_id,
-      amountCents: option.price_cents,
-      description: option.title,
-      shipping: gift.shipping_json,
+    const refundId = await refundPayment({
+      captureId: gift.capture_id,
+      amountCents: gift.refund_cents,
+      requestId: `refund-${gift.id}`,
     });
-    await query(
-      "UPDATE orders SET status = 'completed', paypal_order_id = $2, capture_id = $3 WHERE id = $1",
-      [orderId, paypalOrderId, captureId],
-    );
-    await query("UPDATE gifts SET status = 'charged' WHERE id = $1", [gift.id]);
-    return "charged";
+    const { query } = await db();
+    await query("UPDATE gifts SET refund_id = $2 WHERE id = $1", [gift.id, refundId]);
+    return true;
   } catch (error) {
     const detail = error instanceof ApiError ? `${error.statusCode} ${String(error.body)}` : error;
-    console.error("PayPal charge failed", detail);
-    await query("UPDATE orders SET status = 'failed' WHERE id = $1", [orderId]);
-    await query("UPDATE gifts SET status = 'saved' WHERE id = $1", [gift.id]);
-    return "failed";
+    console.error("PayPal refund failed", detail);
+    return false;
   }
 }
 

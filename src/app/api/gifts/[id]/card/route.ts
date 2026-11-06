@@ -10,7 +10,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const gift = await getGift(id);
   if (!gift) return Response.json({ error: "We couldn't find that gift." }, { status: 404 });
-  if (gift.status === "draft" || gift.status === "charged") {
+  if (gift.status !== "paid") {
     return Response.json({ error: "This gift can't be linked to a card." }, { status: 409 });
   }
 

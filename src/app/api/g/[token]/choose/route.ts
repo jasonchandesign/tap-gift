@@ -1,5 +1,6 @@
+import { after } from "next/server";
 import { z } from "zod";
-import { chooseGift } from "@/lib/checkout";
+import { chooseGift, settleRefund } from "@/lib/checkout";
 import { getGiftByToken } from "@/lib/gifts";
 
 const Body = z.object({
@@ -23,7 +24,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/g/[t
   if (!gift) return Response.json({ error: "We couldn't find that gift." }, { status: 404 });
 
   const result = await chooseGift(gift, parsed.data.optionId, parsed.data.choice);
-  if (result === "charged") return Response.json({ ok: true });
+  if (result === "chosen") {
+    // The kid shouldn't wait on the gifter's refund.
+    after(() => settleRefund(gift.id));
+    return Response.json({ ok: true });
+  }
 
   const { status, error } = FAILURES[result];
   return Response.json({ error, result }, { status });

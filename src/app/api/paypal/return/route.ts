@@ -1,7 +1,7 @@
-import { appUrl, getGift, markSaved } from "@/lib/gifts";
-import { savePaymentToken } from "@/lib/paypal";
+import { appUrl, getGift, markPaid } from "@/lib/gifts";
+import { capturePayment } from "@/lib/paypal";
 
-/** PayPal sends the buyer here after approval. This finishes saving their account. */
+/** PayPal sends the buyer here after approval. This takes the payment. */
 export async function GET(request: Request) {
   const giftId = new URL(request.url).searchParams.get("gift") ?? "";
   const gift = await getGift(giftId);
@@ -12,12 +12,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    if (!gift.setup_token_id) throw new Error("Gift has no setup token");
-    const { vaultId, customerId } = await savePaymentToken(gift.setup_token_id);
-    await markSaved(gift.id, vaultId, customerId);
+    // Changing the picks clears the order, because its amount may no longer cover them.
+    if (!gift.paypal_order_id) throw new Error("Gift has no PayPal order");
+    const { captureId, paidCents } = await capturePayment(gift.paypal_order_id);
+    await markPaid(gift.id, captureId, paidCents);
     return Response.redirect(`${appUrl()}/gifts/${gift.id}/share`, 303);
   } catch (error) {
-    console.error("Could not finish PayPal save", error);
+    console.error("Could not finish PayPal payment", error);
     return Response.redirect(`${appUrl()}/gifts/${gift.id}/confirm?paypal=failed`, 303);
   }
 }

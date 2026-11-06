@@ -26,7 +26,7 @@ export type Shipping = z.infer<typeof ShippingSchema>;
 /** Used until the gifter says otherwise. */
 export const DEFAULT_BUDGET_CENTS = 20_000;
 
-export type GiftStatus = "draft" | "saved" | "picked" | "charged";
+export type GiftStatus = "draft" | "paid" | "chosen" | "canceled";
 
 export type Gift = {
   id: string;
@@ -37,9 +37,12 @@ export type Gift = {
   budget_cents: number;
   note: string;
   rules_json: Rules;
-  setup_token_id: string | null;
-  vault_id: string | null;
   shipping_json: Shipping | null;
+  paypal_order_id: string | null;
+  capture_id: string | null;
+  paid_cents: number | null;
+  refund_cents: number;
+  refund_id: string | null;
   turns_used: number;
   status: GiftStatus;
 };
@@ -113,17 +116,17 @@ export async function saveDelivery(id: string, note: string, shipping: Shipping)
   ]);
 }
 
-export async function setSetupToken(id: string, setupTokenId: string) {
+export async function setPayPalOrder(id: string, orderId: string) {
   const { query } = await db();
-  await query("UPDATE gifts SET setup_token_id = $2 WHERE id = $1", [id, setupTokenId]);
+  await query("UPDATE gifts SET paypal_order_id = $2 WHERE id = $1", [id, orderId]);
 }
 
-export async function markSaved(id: string, vaultId: string, customerId: string | null) {
+export async function markPaid(id: string, captureId: string, paidCents: number) {
   const { query } = await db();
   await query(
-    `UPDATE gifts SET vault_id = $2, paypal_customer_id = $3, status = 'saved'
+    `UPDATE gifts SET capture_id = $2, paid_cents = $3, status = 'paid'
      WHERE id = $1 AND status = 'draft'`,
-    [id, vaultId, customerId],
+    [id, captureId, paidCents],
   );
 }
 
@@ -131,7 +134,7 @@ export type CardLookup =
   | { state: "ready"; token: string }
   | { state: "empty" };
 
-/** A card has no active gift until it's linked to one that's saved. A used gift stays viewable. */
+/** A card has no active gift until it's linked to one that's paid. A chosen gift stays viewable. */
 export async function lookupCard(cardId: string): Promise<CardLookup> {
   const { query } = await db();
   const { rows } = await query<{ token: string; status: GiftStatus }>(
@@ -139,7 +142,7 @@ export async function lookupCard(cardId: string): Promise<CardLookup> {
     [cardId],
   );
   const gift = rows[0];
-  if (!gift || gift.status === "draft") return { state: "empty" };
+  if (!gift || gift.status === "draft" || gift.status === "canceled") return { state: "empty" };
   return { state: "ready", token: gift.token };
 }
 
@@ -159,7 +162,7 @@ export async function relinkCard(cardId: string, giftId: string) {
      WHERE c.id = $1 AND (
        c.current_gift_id IS NULL
        OR c.current_gift_id = $2
-       OR EXISTS (SELECT 1 FROM gifts g WHERE g.id = c.current_gift_id AND g.status = 'charged')
+       OR EXISTS (SELECT 1 FROM gifts g WHERE g.id = c.current_gift_id AND g.status IN ('chosen', 'canceled'))
      )
      RETURNING c.id`,
     [cardId, giftId],

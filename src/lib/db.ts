@@ -11,10 +11,12 @@ CREATE TABLE IF NOT EXISTS gifts (
   budget_cents integer NOT NULL,
   note text NOT NULL,
   rules_json jsonb NOT NULL,
-  setup_token_id text,
-  vault_id text,
-  paypal_customer_id text,
   shipping_json jsonb,
+  paypal_order_id text,
+  capture_id text,
+  paid_cents integer,
+  refund_cents integer NOT NULL DEFAULT 0,
+  refund_id text,
   turns_used integer NOT NULL DEFAULT 0,
   status text NOT NULL DEFAULT 'draft',
   created_at timestamptz NOT NULL DEFAULT now()
@@ -50,8 +52,6 @@ CREATE TABLE IF NOT EXISTS orders (
   id uuid PRIMARY KEY,
   gift_id uuid NOT NULL REFERENCES gifts(id),
   option_id bigint NOT NULL REFERENCES options(id),
-  paypal_order_id text,
-  capture_id text,
   amount_cents integer NOT NULL,
   status text NOT NULL,
   thank_you_note text
@@ -65,6 +65,18 @@ ALTER TABLE options ADD COLUMN IF NOT EXISTS variant_choice_json jsonb NOT NULL 
 ALTER TABLE gifts ADD COLUMN IF NOT EXISTS shipping_json jsonb;
 ALTER TABLE gifts DROP COLUMN IF EXISTS parent_contact;
 ALTER TABLE gifts DROP COLUMN IF EXISTS approve_secret;
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS paypal_order_id text;
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS capture_id text;
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS paid_cents integer;
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS refund_cents integer NOT NULL DEFAULT 0;
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS refund_id text;
+ALTER TABLE gifts DROP COLUMN IF EXISTS setup_token_id;
+ALTER TABLE gifts DROP COLUMN IF EXISTS vault_id;
+ALTER TABLE gifts DROP COLUMN IF EXISTS paypal_customer_id;
+ALTER TABLE orders DROP COLUMN IF EXISTS paypal_order_id;
+ALTER TABLE orders DROP COLUMN IF EXISTS capture_id;
+UPDATE gifts SET status = 'draft' WHERE status IN ('saved', 'picked');
+UPDATE gifts SET status = 'chosen' WHERE status = 'charged';
 `;
 
 type Db = {
