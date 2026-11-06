@@ -29,7 +29,7 @@ export function SendCard({ url, message }: Props) {
         <button type="button" className="button" onClick={share}>
           Share the card
         </button>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <a className="button-quiet" href={`sms:?&body=${body}`}>
             Text
           </a>
@@ -39,11 +39,11 @@ export function SendCard({ url, message }: Props) {
           >
             Email
           </a>
+          <button type="button" className="button-quiet" onClick={copy}>
+            {copied ? "Copied" : "Copy"}
+          </button>
         </div>
-        <button type="button" className="button-quiet" onClick={copy}>
-          {copied ? "Link copied" : "Copy link"}
-        </button>
-        <a className="button-quiet" href={url}>
+        <a className="mt-1 text-center text-sm text-soft underline" href={url}>
           Open as the kid
         </a>
       </div>

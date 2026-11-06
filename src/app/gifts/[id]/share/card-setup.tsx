@@ -45,15 +45,20 @@ export function CardSetup({ giftId }: { giftId: string }) {
           <button type="button" className="button-quiet" onClick={() => link()}>
             Link a new card
           </button>
-          <form onSubmit={relink} className="flex flex-col gap-2">
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              Reusing a card? Paste its link
-              <input name="existingCardUrl" className="field" required />
-            </label>
-            <button type="submit" className="button-quiet">
-              Point this card at the gift
-            </button>
-          </form>
+          <details>
+            <summary className="cursor-pointer text-sm text-soft underline">
+              Reusing a card?
+            </summary>
+            <form onSubmit={relink} className="mt-3 flex flex-col gap-2">
+              <label className="flex flex-col gap-1 text-sm font-medium">
+                Paste its link
+                <input name="existingCardUrl" className="field" required />
+              </label>
+              <button type="submit" className="button-quiet">
+                Point this card at the gift
+              </button>
+            </form>
+          </details>
         </div>
       )}
 

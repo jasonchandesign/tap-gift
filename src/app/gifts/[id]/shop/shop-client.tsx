@@ -159,7 +159,7 @@ export function ShopClient(props: Props) {
             return (
               <li
                 key={option.id}
-                className={`overflow-hidden rounded-2xl border bg-paper ${pick ? "border-berry ring-2 ring-berry" : "border-line"}`}
+                className={`flex flex-col overflow-hidden rounded-2xl border bg-paper ${pick ? "border-berry ring-2 ring-berry" : "border-line"}`}
               >
                 {/* Images come from many stores, so next/image can't list their hosts. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -169,8 +169,8 @@ export function ShopClient(props: Props) {
                   referrerPolicy="no-referrer"
                   className="aspect-square w-full bg-white object-contain"
                 />
-                <div className="p-4">
-                  <h2 className="font-semibold">{option.title}</h2>
+                <div className="flex flex-1 flex-col p-4">
+                  <h2 className="font-sans font-semibold">{option.title}</h2>
                   <p className="mt-1 text-xl font-semibold text-pine">
                     {formatDollars(option.price_cents)}
                   </p>
@@ -199,9 +199,10 @@ export function ShopClient(props: Props) {
                         </select>
                       </label>
                     ))}
+                  <div className="min-h-3 flex-1" />
                   <button
                     type="button"
-                    className={`mt-3 w-full ${pick ? "button" : "button-quiet"}`}
+                    className={`w-full ${pick ? "button" : "button-quiet"}`}
                     onClick={() => toggle(option)}
                     aria-pressed={!!pick}
                   >
@@ -216,7 +217,7 @@ export function ShopClient(props: Props) {
 
       {earlierPicks.length > 0 && (
         <section className="mt-5">
-          <h2 className="font-semibold">Also keeping</h2>
+          <h2 className="font-sans font-semibold">Also keeping</h2>
           <ul className="mt-2 flex flex-col gap-2">
             {earlierPicks.map(({ option }) => (
               <li key={option.id} className="flex items-center justify-between gap-3">

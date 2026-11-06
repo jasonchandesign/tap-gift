@@ -32,7 +32,11 @@ export function CancelGift({ giftId, recipientName, paid }: Props) {
 
   if (!asking) {
     return (
-      <button type="button" className="button-quiet mt-8 w-full" onClick={() => setAsking(true)}>
+      <button
+        type="button"
+        className="mt-6 w-full text-center text-sm text-soft underline"
+        onClick={() => setAsking(true)}
+      >
         Cancel and refund {paid}
       </button>
     );

@@ -55,7 +55,12 @@ async function Gift({ params }: Props) {
   ]);
 
   if (!chosen && !picks.length) {
-    return <Message title="This gift isn't ready yet" body="Check back soon." />;
+    return (
+      <Message
+        title="Your gifts sold out"
+        body={`Ask ${gift.giver_name} to pick something new.`}
+      />
+    );
   }
 
   // Prices and stores stay on the server, because a gift shouldn't show what it cost.

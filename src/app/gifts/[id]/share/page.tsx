@@ -65,6 +65,19 @@ async function Share({ params }: Props) {
   const url = giftUrl(gift.token);
   const paid = formatDollars(gift.paid_cents ?? gift.budget_cents);
   const pricesDiffer = new Set(picks.map((pick) => pick.price_cents)).size > 1;
+
+  if (!picks.length) {
+    return (
+      <>
+        <p className="mt-3 text-lg">
+          Every gift you kept sold out before {gift.recipient_name} chose. You can get your {paid}{" "}
+          back and start a new gift.
+        </p>
+        <CancelGift giftId={gift.id} recipientName={gift.recipient_name} paid={paid} />
+      </>
+    );
+  }
+
   return (
     <>
       <p className="mt-2 text-soft">

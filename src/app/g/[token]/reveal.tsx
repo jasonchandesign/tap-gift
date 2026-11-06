@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Confetti } from "../../confetti";
+import { Present } from "../../present";
 
 export type KidOption = {
   id: string;
@@ -59,7 +61,8 @@ function Done({ token, giverName, chosen }: Pick<Props, "token" | "giverName"> &
 
   return (
     <section className="reveal-in w-full max-w-md rounded-3xl border border-line bg-paper p-8 text-center">
-      <h1 className="text-3xl font-semibold">It&apos;s on its way!</h1>
+      {!chosen.thankYou && <Confetti />}
+      <h1 className="text-4xl font-semibold">It&apos;s on its way!</h1>
       <div className="mx-auto mt-5 w-56">
         <GiftPicture option={chosen} />
       </div>
@@ -91,6 +94,7 @@ export function Reveal({ token, giverName, recipientName, note, options, chosen 
   const [stage, setStage] = useState<"cover" | "note" | "unwrap" | "choose">("cover");
   const [remaining, setRemaining] = useState(options);
   const [index, setIndex] = useState(0);
+  const [opening, setOpening] = useState(false);
   const [opened, setOpened] = useState(false);
   const [selected, setSelected] = useState(options.length === 1 ? options[0].id : "");
   const [choice, setChoice] = useState<Record<string, string>>({});
@@ -102,6 +106,14 @@ export function Reveal({ token, giverName, recipientName, note, options, chosen 
 
   const selectedOption = remaining.find(({ id }) => id === selected);
   const ready = !!selectedOption?.variants.every(({ name }) => choice[name]);
+
+  function unwrap() {
+    setOpening(true);
+    setTimeout(() => {
+      setOpening(false);
+      setOpened(true);
+    }, 750);
+  }
 
   function select(id: string) {
     setSelected(id);
@@ -136,15 +148,14 @@ export function Reveal({ token, giverName, recipientName, note, options, chosen 
 
   if (stage === "cover") {
     return (
-      <section className="w-full max-w-md rounded-3xl bg-berry p-10 text-center text-white shadow-lg">
-        <p className="text-lg">A gift for</p>
-        <h1 className="mt-1 text-5xl font-semibold">{recipientName}</h1>
-        <p className="mt-4 text-lg">From {giverName}</p>
-        <button
-          type="button"
-          className="mt-8 rounded-full bg-white px-8 py-4 text-lg font-semibold text-berry"
-          onClick={() => setStage("note")}
-        >
+      <section className="w-full max-w-md text-center">
+        <p className="text-lg text-soft">A gift for</p>
+        <h1 className="mt-1 text-6xl font-semibold">{recipientName}</h1>
+        <div className="mx-auto mt-6 w-60">
+          <Present wiggle />
+        </div>
+        <p className="mt-5 text-lg">From {giverName}</p>
+        <button type="button" className="button mt-4 px-10 text-lg" onClick={() => setStage("note")}>
           Open your gift
         </button>
       </section>
@@ -153,9 +164,9 @@ export function Reveal({ token, giverName, recipientName, note, options, chosen 
 
   if (stage === "note") {
     return (
-      <section className="reveal-in w-full max-w-md rounded-3xl border border-line bg-paper p-8">
+      <section className="reveal-in w-full max-w-md -rotate-1 rounded-3xl border border-line bg-paper p-8 shadow-lg">
         <p className="text-soft">A note from {giverName}</p>
-        <p className="mt-2 text-2xl">{note}</p>
+        <p className="mt-3 font-hand text-4xl leading-snug">{note}</p>
         <button type="button" className="button mt-6 w-full" onClick={() => setStage("unwrap")}>
           {options.length === 1 ? "Unwrap your gift" : `Unwrap your ${options.length} gifts`}
         </button>
@@ -173,6 +184,7 @@ export function Reveal({ token, giverName, recipientName, note, options, chosen 
         </p>
         {opened ? (
           <div key={option.id} className="reveal-in mt-4 rounded-3xl border border-line bg-paper p-6">
+            <Confetti />
             <GiftPicture option={option} />
             <h2 className="mt-4 text-xl font-semibold">{option.title}</h2>
             {option.summary && <p className="text-soft">Comes in {option.summary}</p>}
@@ -191,12 +203,15 @@ export function Reveal({ token, giverName, recipientName, note, options, chosen 
         ) : (
           <button
             type="button"
-            className="gift-box mx-auto mt-4"
+            className="mx-auto mt-4 block w-64"
             aria-label={`Unwrap gift ${index + 1}`}
-            onClick={() => setOpened(true)}
+            disabled={opening}
+            onClick={unwrap}
           >
-            <span className="gift-ribbon" aria-hidden="true" />
-            <span className="relative font-semibold">Tap to unwrap</span>
+            <Present tone={index} wiggle opening={opening} />
+            <span className={`mt-4 block text-lg font-semibold ${opening ? "invisible" : ""}`}>
+              Tap to unwrap
+            </span>
           </button>
         )}
       </section>
