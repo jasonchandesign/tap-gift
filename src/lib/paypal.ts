@@ -73,9 +73,11 @@ export async function createPayment(payment: {
     },
   });
 
-  const approveUrl = result.links?.find(({ rel }) => rel === "payer-action")?.href;
-  if (!result.id || !approveUrl) throw new Error("PayPal returned no approval link");
-  return { orderId: result.id, approveUrl };
+  const payerAction = result.links?.find(({ rel }) => rel === "payer-action")?.href;
+  if (!result.id || !payerAction) throw new Error("PayPal returned no approval link");
+  // On phones, /checkoutnow hands off to the PayPal app, which can't see sandbox orders. /pay is
+  // the same checkout without that step. It isn't a documented link, so recheck it before live use.
+  return { orderId: result.id, approveUrl: payerAction.replace("/checkoutnow", "/pay") };
 }
 
 /** Takes the money for an approved order. The request ID makes a retry of this order safe. */
