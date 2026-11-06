@@ -22,6 +22,18 @@ npm run paypal:test
 
 Set `USAGE_TYPE=PLATFORM` to try the other `usage_type`, and `AMOUNT=10.00` to change the charge. The default is `MERCHANT` and `25.00`.
 
+## Test Channel3 search
+
+```bash
+npm run channel3:test
+```
+
+Set `QUERY` and `MAX_PRICE` to try other searches.
+
+## Deploy
+
+`render.yaml` defines the web service and Postgres database. Create a Blueprint from this repo in Render and fill in the prompted keys.
+
 ## License
 
 MIT

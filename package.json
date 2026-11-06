@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "paypal:test": "node --env-file=.env scripts/paypal-vault-test.mjs"
+    "paypal:test": "node --env-file=.env scripts/paypal-vault-test.mjs",
+    "channel3:test": "node --env-file=.env scripts/channel3-search-test.mjs"
   },
   "dependencies": {
     "next": "16.4.5",
@@ -23,5 +24,8 @@
     "eslint-config-next": "16.4.5",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
