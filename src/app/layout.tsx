@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
   title: "Tap Gift",
-  description: "Give money. Let them choose. Keep a say.",
+  description: "You narrow it down. They unwrap the magic.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

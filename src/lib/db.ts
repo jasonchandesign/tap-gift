@@ -14,8 +14,7 @@ CREATE TABLE IF NOT EXISTS gifts (
   setup_token_id text,
   vault_id text,
   paypal_customer_id text,
-  parent_contact text NOT NULL,
-  approve_secret text NOT NULL,
+  shipping_json jsonb,
   turns_used integer NOT NULL DEFAULT 0,
   status text NOT NULL DEFAULT 'draft',
   created_at timestamptz NOT NULL DEFAULT now()
@@ -57,6 +56,15 @@ CREATE TABLE IF NOT EXISTS orders (
   status text NOT NULL,
   thank_you_note text
 );
+
+ALTER TABLE options ADD COLUMN IF NOT EXISTS turn integer NOT NULL DEFAULT 0;
+ALTER TABLE options ADD COLUMN IF NOT EXISTS merchant text;
+ALTER TABLE options ADD COLUMN IF NOT EXISTS selected boolean NOT NULL DEFAULT false;
+ALTER TABLE options ADD COLUMN IF NOT EXISTS variants_json jsonb NOT NULL DEFAULT '[]';
+ALTER TABLE options ADD COLUMN IF NOT EXISTS variant_choice_json jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS shipping_json jsonb;
+ALTER TABLE gifts DROP COLUMN IF EXISTS parent_contact;
+ALTER TABLE gifts DROP COLUMN IF EXISTS approve_secret;
 `;
 
 type Db = {

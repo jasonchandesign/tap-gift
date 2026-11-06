@@ -6,9 +6,9 @@ export const metadata: Metadata = { title: "Create a gift · Tap Gift" };
 export default function NewGiftPage() {
   return (
     <main className="mx-auto w-full max-w-xl p-6">
-      <h1 className="mt-4 text-3xl font-semibold">Create a gift</h1>
+      <h1 className="mt-4 text-3xl font-semibold">Who&apos;s the gift for?</h1>
       <p className="mt-2 text-soft">
-        Write what you&apos;d say in a card. We&apos;ve filled in an example you can change.
+        Tell us about them. We&apos;ll find a few ideas, and you can narrow them down.
       </p>
       <NewGiftForm />
     </main>

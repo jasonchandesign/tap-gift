@@ -2,15 +2,31 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { db } from "./db";
 
+export { formatDollars } from "./gifts-format";
+
 export const RulesSchema = z.object({
   likes: z.array(z.string()),
   avoid: z.array(z.string()),
-  intent: z.string(),
+  size: z.string().optional(),
 });
 
 export type Rules = z.infer<typeof RulesSchema>;
 
-export type GiftStatus = "draft" | "saved" | "picked" | "approved" | "charged";
+export const ShippingSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  line1: z.string().trim().min(1).max(120),
+  line2: z.string().trim().max(120),
+  city: z.string().trim().min(1).max(80),
+  state: z.string().trim().length(2),
+  zip: z.string().trim().regex(/^\d{5}(-\d{4})?$/),
+});
+
+export type Shipping = z.infer<typeof ShippingSchema>;
+
+/** Used until the gifter says otherwise. */
+export const DEFAULT_BUDGET_CENTS = 20_000;
+
+export type GiftStatus = "draft" | "saved" | "picked" | "charged";
 
 export type Gift = {
   id: string;
@@ -23,7 +39,8 @@ export type Gift = {
   rules_json: Rules;
   setup_token_id: string | null;
   vault_id: string | null;
-  parent_contact: string;
+  shipping_json: Shipping | null;
+  turns_used: number;
   status: GiftStatus;
 };
 
@@ -31,9 +48,6 @@ export type NewGift = {
   giverName: string;
   recipientName: string;
   recipientAge: number;
-  budgetCents: number;
-  note: string;
-  parentContact: string;
   rules: Rules;
 };
 
@@ -49,28 +63,21 @@ export function cardUrl(cardId: string) {
   return `${appUrl()}/c/${cardId}`;
 }
 
-export function formatDollars(cents: number) {
-  return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
-}
-
 export async function createGift(gift: NewGift) {
   const id = randomUUID();
   const { query } = await db();
   await query(
     `INSERT INTO gifts (id, token, giver_name, recipient_name, recipient_age, budget_cents,
-       note, rules_json, parent_contact, approve_secret)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+       note, rules_json)
+     VALUES ($1, $2, $3, $4, $5, $6, '', $7)`,
     [
       id,
       randomBytes(16).toString("hex"),
       gift.giverName,
       gift.recipientName,
       gift.recipientAge,
-      gift.budgetCents,
-      gift.note,
+      DEFAULT_BUDGET_CENTS,
       JSON.stringify(gift.rules),
-      gift.parentContact,
-      randomBytes(16).toString("hex"),
     ],
   );
   return id;
@@ -89,15 +96,21 @@ export async function getGiftByToken(token: string) {
   return rows[0] ?? null;
 }
 
-export async function confirmRules(
-  id: string,
-  update: { budgetCents: number; recipientAge: number; rules: Rules },
-) {
+export async function saveRules(id: string, budgetCents: number, rules: Rules) {
   const { query } = await db();
   await query(
-    "UPDATE gifts SET budget_cents = $2, recipient_age = $3, rules_json = $4 WHERE id = $1 AND status = 'draft'",
-    [id, update.budgetCents, update.recipientAge, JSON.stringify(update.rules)],
+    "UPDATE gifts SET budget_cents = $2, rules_json = $3 WHERE id = $1 AND status = 'draft'",
+    [id, budgetCents, JSON.stringify(rules)],
   );
+}
+
+export async function saveDelivery(id: string, note: string, shipping: Shipping) {
+  const { query } = await db();
+  await query("UPDATE gifts SET note = $2, shipping_json = $3 WHERE id = $1 AND status = 'draft'", [
+    id,
+    note,
+    JSON.stringify(shipping),
+  ]);
 }
 
 export async function setSetupToken(id: string, setupTokenId: string) {
@@ -118,7 +131,7 @@ export type CardLookup =
   | { state: "ready"; token: string }
   | { state: "empty" };
 
-/** A card has no active gift until it's linked to one that's saved and not yet charged. */
+/** A card has no active gift until it's linked to one that's saved. A used gift stays viewable. */
 export async function lookupCard(cardId: string): Promise<CardLookup> {
   const { query } = await db();
   const { rows } = await query<{ token: string; status: GiftStatus }>(
@@ -126,7 +139,7 @@ export async function lookupCard(cardId: string): Promise<CardLookup> {
     [cardId],
   );
   const gift = rows[0];
-  if (!gift || gift.status === "draft" || gift.status === "charged") return { state: "empty" };
+  if (!gift || gift.status === "draft") return { state: "empty" };
   return { state: "ready", token: gift.token };
 }
 

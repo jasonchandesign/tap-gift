@@ -1,31 +1,32 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import type { Rules } from "@/lib/gifts";
+import type { Shipping } from "@/lib/gifts";
 
 type Props = {
   giftId: string;
+  giverName: string;
   recipientName: string;
-  budgetDollars: number;
-  recipientAge: number;
-  rules: Rules;
-  noteMismatch: boolean;
+  maxCharge: string;
+  savedNote: string;
+  savedShipping: Shipping | null;
   paypalFailed: boolean;
 };
 
-function toList(value: FormDataEntryValue | null) {
-  return String(value ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 export function ConfirmForm(props: Props) {
-  const { giftId, recipientName, budgetDollars, recipientAge, rules } = props;
+  const { giftId, giverName, recipientName, maxCharge } = props;
   const [error, setError] = useState(
     props.paypalFailed ? "We couldn't finish saving PayPal. Please try again." : "",
   );
   const [busy, setBusy] = useState(false);
+  const shipping = props.savedShipping ?? {
+    name: `${recipientName} Sample`,
+    line1: "123 Sample Street",
+    line2: "",
+    city: "San Jose",
+    state: "CA",
+    zip: "95131",
+  };
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,12 +40,14 @@ export function ConfirmForm(props: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           giftId,
-          budgetDollars: Number(form.get("budgetDollars")),
-          recipientAge: Number(form.get("recipientAge")),
-          rules: {
-            likes: toList(form.get("likes")),
-            avoid: toList(form.get("avoid")),
-            intent: String(form.get("intent") ?? "").trim(),
+          note: form.get("note"),
+          shipping: {
+            name: form.get("name"),
+            line1: form.get("line1"),
+            line2: form.get("line2"),
+            city: form.get("city"),
+            state: form.get("state"),
+            zip: form.get("zip"),
           },
         }),
       });
@@ -59,49 +62,81 @@ export function ConfirmForm(props: Props) {
 
   return (
     <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
-      {props.noteMismatch && (
-        <p className="rounded-xl border border-line bg-paper p-3">
-          Your note and the form gave different numbers. We&apos;ll use what&apos;s below.
+      <label className="flex flex-col gap-1 font-medium">
+        Your note to {recipientName}
+        <textarea
+          name="note"
+          className="field"
+          rows={3}
+          required
+          maxLength={1000}
+          defaultValue={props.savedNote || `Happy birthday, ${recipientName}! Love, ${giverName}`}
+        />
+      </label>
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className="font-medium">Where should it ship?</legend>
+        <p className="text-sm text-soft">
+          This is a demo with a sample address filled in. Nothing is really shipped.
         </p>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 font-medium">
-          Budget in dollars
+        <input
+          name="name"
+          className="field"
+          aria-label="Full name"
+          placeholder="Full name"
+          defaultValue={shipping.name}
+          required
+          maxLength={100}
+        />
+        <input
+          name="line1"
+          className="field"
+          aria-label="Street address"
+          placeholder="Street address"
+          defaultValue={shipping.line1}
+          required
+          maxLength={120}
+        />
+        <input
+          name="line2"
+          className="field"
+          aria-label="Apartment or unit"
+          placeholder="Apartment or unit (optional)"
+          defaultValue={shipping.line2}
+          maxLength={120}
+        />
+        <div className="grid grid-cols-[1fr_5rem_7rem] gap-2">
           <input
-            name="budgetDollars"
-            type="number"
+            name="city"
             className="field"
-            defaultValue={budgetDollars}
-            min={1}
-            max={500}
+            aria-label="City"
+            placeholder="City"
+            defaultValue={shipping.city}
             required
+            maxLength={80}
           />
-        </label>
-        <label className="flex flex-col gap-1 font-medium">
-          {recipientName}&apos;s age
           <input
-            name="recipientAge"
-            type="number"
+            name="state"
             className="field"
-            defaultValue={recipientAge}
-            min={1}
-            max={17}
+            aria-label="State"
+            placeholder="State"
+            defaultValue={shipping.state}
             required
+            minLength={2}
+            maxLength={2}
           />
-        </label>
-      </div>
-      <label className="flex flex-col gap-1 font-medium">
-        {recipientName} likes
-        <input name="likes" className="field" defaultValue={rules.likes.join(", ")} />
-      </label>
-      <label className="flex flex-col gap-1 font-medium">
-        Avoid
-        <input name="avoid" className="field" defaultValue={rules.avoid.join(", ")} />
-      </label>
-      <label className="flex flex-col gap-1 font-medium">
-        What this gift is for
-        <textarea name="intent" className="field" rows={2} defaultValue={rules.intent} />
-      </label>
+          <input
+            name="zip"
+            className="field"
+            aria-label="ZIP code"
+            placeholder="ZIP"
+            defaultValue={shipping.zip}
+            required
+            pattern="\d{5}(-\d{4})?"
+          />
+        </div>
+      </fieldset>
+
       {error && (
         <p role="alert" className="text-berry">
           {error}
@@ -111,7 +146,8 @@ export function ConfirmForm(props: Props) {
         {busy ? "Opening PayPal..." : "Save with PayPal"}
       </button>
       <p className="text-center text-sm text-soft">
-        You&apos;re charged $0 now. PayPal charges you once, only after a parent approves.
+        You&apos;re charged $0 now. PayPal charges you once, when {recipientName} chooses, up to{" "}
+        {maxCharge}.
       </p>
     </form>
   );

@@ -2,9 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { MicButton } from "../mic-button";
+
+const SUGGESTIONS = [
+  "Loves horses and drawing",
+  "Big soccer fan, follows Messi",
+  "Into Pokémon and video games",
+  "Science experiments and slime",
+];
 
 export function NewGiftForm() {
   const router = useRouter();
+  const [prompt, setPrompt] = useState(SUGGESTIONS[0]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -22,14 +31,12 @@ export function NewGiftForm() {
           giverName: form.get("giverName"),
           recipientName: form.get("recipientName"),
           recipientAge: Number(form.get("recipientAge")),
-          budgetDollars: Number(form.get("budgetDollars")),
-          note: form.get("note"),
-          parentContact: form.get("parentContact"),
+          prompt,
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      router.push(`/gifts/${data.id}/confirm${data.mismatch ? "?check=1" : ""}`);
+      router.push(`/gifts/${data.id}/shop`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
       setBusy(false);
@@ -61,45 +68,36 @@ export function NewGiftForm() {
         </label>
       </div>
       <label className="flex flex-col gap-1 font-medium">
-        Budget in dollars
-        <input
-          name="budgetDollars"
-          type="number"
-          className="field"
-          defaultValue={50}
-          min={1}
-          max={500}
-          required
-        />
-      </label>
-      <label className="flex flex-col gap-1 font-medium">
-        Your note
+        What are they into?
         <textarea
-          name="note"
           className="field"
-          rows={4}
+          rows={3}
           required
-          maxLength={1000}
-          defaultValue="$50 for Mia, she's 9, loves art and animals, nothing with screens"
+          maxLength={500}
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
         />
       </label>
-      <label className="flex flex-col gap-1 font-medium">
-        Parent&apos;s phone or email
-        <input
-          name="parentContact"
-          className="field"
-          defaultValue="parent@example.com"
-          required
-          maxLength={120}
-        />
-      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        {SUGGESTIONS.map((suggestion) => (
+          <button
+            key={suggestion}
+            type="button"
+            className="chip"
+            onClick={() => setPrompt(suggestion)}
+          >
+            {suggestion}
+          </button>
+        ))}
+        <MicButton onText={setPrompt} />
+      </div>
       {error && (
         <p role="alert" className="text-berry">
           {error}
         </p>
       )}
       <button type="submit" className="button" disabled={busy}>
-        {busy ? "Reading your note..." : "Continue"}
+        {busy ? "Finding ideas..." : "Find gift ideas"}
       </button>
     </form>
   );

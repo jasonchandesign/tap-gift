@@ -1,6 +1,6 @@
 # Tap Gift
 
-Tap Gift turns an NFC card or a shared link into a holiday gift. A grandparent sets a budget and a note, the kid tells an AI shopper what they want, and a parent approves before PayPal charges the grandparent's saved account.
+Tap Gift turns an NFC card or a shared link into a gift worth unwrapping. A gifter tells an AI what the kid loves and narrows the ideas down to a few. The kid taps the card, unwraps each one, and chooses, which charges the gifter's saved PayPal account. Fulfillment is simulated: this runs in the PayPal sandbox and nothing is bought from the store.
 
 Built for the PayPal AI Hackathon. Sandbox only.
 
