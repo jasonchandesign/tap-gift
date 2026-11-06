@@ -27,7 +27,8 @@ if (!res.ok) {
 const products = data.products ?? [];
 console.log(`${products.length} results for "${QUERY}" under $${MAX_PRICE}:\n`);
 for (const product of products) {
-  console.log(`- ${product.title}: ${JSON.stringify(product.offers?.[0]?.price)}`);
+  const offer = product.offers?.[0];
+  console.log(`- ${product.title}: $${offer?.price?.price} at ${offer?.domain}, age ${product.age}`);
 }
 if (products[0]) {
   console.log("\nFirst product in full, to confirm the response fields:");
