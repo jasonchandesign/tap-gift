@@ -146,7 +146,7 @@ function Done({
       body: JSON.stringify({ note }),
     }).catch(() => null);
     if (response?.ok) setSent(true);
-    else setError("That didn't save. Please try again.");
+    else setError("That didn't send. Please try again.");
   }
 
   return (
@@ -159,7 +159,7 @@ function Done({
       <p className="mt-4 text-xl font-semibold">{chosen.title}</p>
       {chosen.details && <p className="text-soft">{chosen.details}</p>}
       {sent ? (
-        <p className="mt-6 text-lg text-accent">We saved your thank-you for {giverName}.</p>
+        <p className="mt-6 text-lg text-accent">Your thank-you note has been sent to {giverName}.</p>
       ) : (
         <form onSubmit={submit} className="mt-6 flex flex-col gap-3 text-left">
           <label className="flex flex-col gap-1 font-medium">
@@ -176,7 +176,7 @@ function Done({
             </p>
           )}
           <button type="submit" className="button">
-            Save thank you
+            Send thank you
           </button>
         </form>
       )}
@@ -727,7 +727,7 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
                 />
                 {/* The picker above already shows the choices. */}
                 {option.summary && option.variants.length === 0 && <p className="mt-2 font-medium">Comes in {option.summary}</p>}
-                {option.description && <MoreText text={option.description} className="mt-2 text-soft" />}
+                {option.description && <MoreText text={option.description} className={`${option.variants.length ? "mt-4" : "mt-2"} text-soft`} />}
               </div>
             </div>
             <div className={`mx-auto w-full max-w-md px-6 pb-6 pt-2 ${stage === "storing" ? "float-out" : ""}`}>
