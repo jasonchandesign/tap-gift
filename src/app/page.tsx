@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "./logo";
 
 const STEPS = [
   ["Tell us what they love", "AI finds a few great ideas."],
@@ -9,7 +10,7 @@ const STEPS = [
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 p-6">
-      <p className="text-lg font-extrabold tracking-tight">Tap Gift</p>
+      <Logo className="text-xl" />
       <h1 className="mt-2 text-4xl font-semibold leading-tight">
         You narrow it down. They unwrap it.
       </h1>
