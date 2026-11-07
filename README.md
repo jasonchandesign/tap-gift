@@ -62,6 +62,14 @@ npm run channel3:test
 
 Set `QUERY` and `MAX_PRICE` to try other searches.
 
+## Fill a test gift for a demo
+
+```bash
+npx tsx --env-file=.env scripts/demo-picks.mts <gift link> --dry
+```
+
+Swaps the gifts in a paid, unopened gift for products with several photos, colors to pick and an age tag. Drop `--dry` to save. To change a gift on Render, put Render's external `DATABASE_URL` in `.env.render` and add `--env-file=.env.render` after the first `--env-file`.
+
 ## Deploy
 
 `render.yaml` defines the web service and Postgres database. Create a Blueprint from this repo in Render and fill in the prompted keys.

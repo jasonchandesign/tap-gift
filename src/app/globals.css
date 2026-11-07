@@ -204,16 +204,7 @@ body {
   z-index: 20;
   pointer-events: none;
   filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.35));
-}
-
-.rip-left {
-  transform-origin: 0 100%;
-  animation: rip-left 0.9s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
-}
-
-.rip-right {
-  transform-origin: 100% 100%;
-  animation: rip-right 0.9s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
+  animation: rip-away 0.9s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
 }
 
 .to-basket {
@@ -271,16 +262,10 @@ body {
   95% { transform: rotate(-1.5deg); }
 }
 
-@keyframes rip-left {
+@keyframes rip-away {
   0% { transform: none; }
-  20% { transform: translateX(-10px) rotate(-1deg); }
-  100% { transform: translateX(-110%) rotate(-16deg); }
-}
-
-@keyframes rip-right {
-  0% { transform: none; }
-  20% { transform: translateX(10px) rotate(1deg); }
-  100% { transform: translateX(110%) rotate(16deg); }
+  20% { transform: translate(calc(var(--rip-x) * 0.03), calc(var(--rip-y) * 0.03)) rotate(calc(var(--rip-turn) * 0.1)); }
+  100% { transform: translate(var(--rip-x), var(--rip-y)) rotate(var(--rip-turn)); }
 }
 
 @keyframes to-basket {

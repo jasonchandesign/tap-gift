@@ -13,6 +13,7 @@ import { Confetti } from "../../confetti";
 import { Bow, GiftTag, TagString } from "../../gift-wrap";
 import { MoreText } from "../../more-text";
 import { Photos } from "../../photos";
+import { cutLength, MIN_CUT_PX, tearAcross, tearAlong, type Half, type Point } from "./tear";
 
 export type KidOption = {
   id: string;
@@ -45,52 +46,7 @@ type Props = {
   chosen: KidChosen | null;
 };
 
-const SURPRISES = ["A surprise", "Two surprises", "Three surprises", "Four surprises", "Five surprises"];
 const RIP_MS = 900;
-/** How far a finger must swing back the other way to count as a zigzag, in pixels. */
-const SWING_PX = 18;
-
-type Point = { x: number; y: number };
-
-/**
- * The torn edge from top to bottom, as x and y percents. A finger's path sets its shape, squashed
- * or stretched to the full height. Without one it's random, so no two rips look the same.
- */
-function tearEdge(path: Point[] = []) {
-  const edge: Point[] = [];
-  if (path.length > 2) {
-    const step = Math.max(1, Math.floor(path.length / 24));
-    const kept = path.filter((_, index) => index % step === 0);
-    kept.forEach(({ x }, index) =>
-      edge.push({ x: Math.min(85, Math.max(15, x)), y: (index / (kept.length - 1)) * 100 }),
-    );
-  } else {
-    // A slow wander, with uneven jags on top of it.
-    let y = 0;
-    let drift = 0;
-    let side = Math.random() < 0.5 ? -1 : 1;
-    while (y < 100) {
-      edge.push({ x: 50 + drift + side * (1 + Math.random() * 5), y });
-      y += 2 + Math.random() * 6;
-      drift = Math.max(-12, Math.min(12, drift + (Math.random() - 0.5) * 6));
-      side = Math.random() < 0.75 ? -side : side;
-    }
-    edge.push({ x: 50 + drift, y: 100 });
-  }
-  // Small jags between the big ones, like paper fibers.
-  return edge.flatMap((point, index) => {
-    const next = edge[index + 1];
-    if (!next) return [point];
-    const jag = { x: (point.x + next.x) / 2 + (Math.random() - 0.5) * 3, y: (point.y + next.y) / 2 };
-    return [point, jag];
-  });
-}
-
-function tearClip(edge: Point[], side: "left" | "right") {
-  const outer = side === "left" ? 0 : 100;
-  const points = edge.map(({ x, y }) => `${x.toFixed(1)}% ${y.toFixed(1)}%`).join(", ");
-  return `polygon(${outer}% 0, ${points}, ${outer}% 100%)`;
-}
 const STORE_MS = 550;
 
 function GiftPicture({ option }: { option: { imageUrl: string } }) {
@@ -226,17 +182,11 @@ function Done({
   );
 }
 
-/**
- * Follows a finger (or mouse) across the paper. Enough zigzags, or a long enough drag, tears it
- * open along that path.
- */
-function useZigzag(onTear?: (path: Point[]) => void) {
+/** Follows a finger (or mouse) across the paper. Letting go after a long enough cut tears along it. */
+function useCut(onTear?: (path: Point[]) => void) {
   const [trail, setTrail] = useState<Point[]>([]);
-  const drag = useRef<{ points: Point[]; turns: number; heading: number; far: number } | null>(null);
-
-  function percent(event: PointerEvent) {
-    return { x: (event.clientX / window.innerWidth) * 100, y: (event.clientY / window.innerHeight) * 100 };
-  }
+  // Only the finger that started the cut counts, so a second finger can't bend it.
+  const drag = useRef<{ pointer: number; points: Point[] } | null>(null);
 
   function stop() {
     drag.current = null;
@@ -248,51 +198,36 @@ function useZigzag(onTear?: (path: Point[]) => void) {
     handlers: onTear && {
       onPointerDown(event: PointerEvent<HTMLElement>) {
         if ((event.target as HTMLElement).closest("button")) return;
-        // Keeps the drag going if the finger slides off the edge.
+        // Keeps the cut going if the finger slides off the edge.
         try {
           event.currentTarget.setPointerCapture(event.pointerId);
         } catch {
-          // Not every pointer can be captured, and the drag works without it.
+          // Not every pointer can be captured, and the cut works without it.
         }
-        drag.current = { points: [percent(event)], turns: 0, heading: 0, far: event.clientX };
+        if (drag.current) return;
+        drag.current = { pointer: event.pointerId, points: [{ x: event.clientX, y: event.clientY }] };
         setTrail(drag.current.points);
       },
       onPointerMove(event: PointerEvent<HTMLElement>) {
         const current = drag.current;
-        if (!current) return;
-        const point = percent(event);
+        if (current?.pointer !== event.pointerId) return;
         const last = current.points[current.points.length - 1];
-        if (Math.hypot(point.x - last.x, point.y - last.y) < 1.5) return;
-        current.points = [...current.points, point];
-
-        // A turn is a swing back of at least SWING_PX from the farthest point the other way.
-        const x = event.clientX;
-        const way = Math.sign(x - current.far);
-        if (current.heading === 0) {
-          if (Math.abs(x - current.far) > SWING_PX) {
-            current.heading = way;
-            current.far = x;
-          }
-        } else if (way === current.heading) {
-          current.far = x;
-        } else if (Math.abs(x - current.far) > SWING_PX) {
-          current.turns += 1;
-          current.heading = way;
-          current.far = x;
-          navigator.vibrate?.(15);
-        }
-
-        const ys = current.points.map(({ y }) => y);
-        const span = Math.max(...ys) - Math.min(...ys);
-        if (current.turns >= 4 || (current.turns >= 2 && span > 25) || span > 55) {
-          stop();
-          onTear(current.points);
-        } else {
-          setTrail(current.points);
+        if (Math.hypot(event.clientX - last.x, event.clientY - last.y) < 3) return;
+        current.points = [...current.points, { x: event.clientX, y: event.clientY }];
+        setTrail(current.points);
+      },
+      onPointerUp(event: PointerEvent<HTMLElement>) {
+        if (drag.current?.pointer !== event.pointerId) return;
+        const { points } = drag.current;
+        stop();
+        if (cutLength(points) >= MIN_CUT_PX) {
+          navigator.vibrate?.(20);
+          onTear(points);
         }
       },
-      onPointerUp: stop,
-      onPointerCancel: stop,
+      onPointerCancel(event: PointerEvent<HTMLElement>) {
+        if (drag.current?.pointer === event.pointerId) stop();
+      },
     },
   };
 }
@@ -312,7 +247,7 @@ function Wrapped({
     "--wrap-pattern": option.wrapImage,
     "--wrap-pattern-size": option.wrapSize,
   } as CSSProperties;
-  const { trail, handlers } = useZigzag(onUnwrap);
+  const { trail, handlers } = useCut(onUnwrap);
 
   return (
     <section
@@ -321,18 +256,21 @@ function Wrapped({
       {...handlers}
     >
       {trail.length > 1 && (
-        <svg className="pointer-events-none fixed inset-0 z-10 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <polyline
-            points={trail.map(({ x, y }) => `${x},${y}`).join(" ")}
-            fill="none"
-            stroke="white"
-            strokeWidth="5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="0.1 9"
-            vectorEffect="non-scaling-stroke"
-            opacity="0.9"
-          />
+        <svg className="pointer-events-none fixed inset-0 z-10 size-full" aria-hidden="true">
+          {[
+            { stroke: "rgb(0 0 0 / 0.3)", width: 6 },
+            { stroke: "white", width: 2.5 },
+          ].map(({ stroke, width }) => (
+            <polyline
+              key={stroke}
+              points={trail.map(({ x, y }) => `${x},${y}`).join(" ")}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={width}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ))}
         </svg>
       )}
       <Bow className="relative w-44 shrink-0" />
@@ -342,19 +280,16 @@ function Wrapped({
       </div>
       <div className="min-h-6 flex-1" />
       <div className="relative flex w-full max-w-md flex-col items-center gap-3">
-        <p className="rounded-lg bg-action px-3 py-0.5 font-display text-xl text-paper">
-          {SURPRISES[left - 1]} inside
-        </p>
         <button
           type="button"
           className="button button-paper w-full text-lg"
           tabIndex={onUnwrap ? 0 : -1}
           onClick={() => onUnwrap?.()}
         >
-          Unwrap
+          Unwrap ({left} left)
         </button>
         <p className="rounded-lg bg-action/80 px-3 py-0.5 text-sm font-semibold text-paper">
-          or zigzag your finger to rip it open
+          or swipe across the paper to rip it
         </p>
       </div>
     </section>
@@ -362,13 +297,13 @@ function Wrapped({
 }
 
 const GIFT_ICON = (
-  <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg viewBox="0 0 24 24" className="size-9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7C10 3 7 4 8 6s4 1 4 1zM12 7c2-4 5-3 4-1s-4 1-4 1z" />
   </svg>
 );
 
 const HEART_ICON = (
-  <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg viewBox="0 0 24 24" className="size-9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
   </svg>
 );
@@ -376,9 +311,7 @@ const HEART_ICON = (
 function IntroStep({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <li className="flex items-center gap-4 text-left">
-      <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-action text-paper">
-        {icon}
-      </span>
+      <span className="shrink-0 text-action">{icon}</span>
       <span className="font-display text-2xl">{children}</span>
     </li>
   );
@@ -395,14 +328,15 @@ function Intro({ count, recipientName, onStart }: { count: number; recipientName
         className="reveal-in w-full max-w-sm rounded-3xl bg-paper p-7 text-center text-ink shadow-xl"
       >
         <h1 id="intro-title" className="text-3xl font-semibold">
-          {recipientName}, you have {count} surprises!
+          <span className="block">{recipientName},</span>
+          You have {count} surprises!
         </h1>
         <ol className="mx-auto mt-6 flex w-fit flex-col gap-4">
           <IntroStep icon={GIFT_ICON}>{count === 2 ? "Unwrap both" : `Unwrap all ${count}`}</IntroStep>
           <IntroStep icon={HEART_ICON}>Pick 1 to keep</IntroStep>
         </ol>
         <button type="button" className="button mt-7 w-full text-lg" autoFocus onClick={onStart}>
-          Start unwrapping
+          Get started
         </button>
       </section>
     </div>
@@ -436,7 +370,7 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
     "wrapped",
   );
   const [intro, setIntro] = useState(options.length > 1);
-  const [edge, setEdge] = useState<Point[]>([]);
+  const [halves, setHalves] = useState<Half[]>([]);
   const [remaining, setRemaining] = useState(options);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState(options.length === 1 ? options[0].id : "");
@@ -452,7 +386,8 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
 
   function unwrap(path?: Point[]) {
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setEdge(tearEdge(path));
+    const { innerWidth: width, innerHeight: height } = window;
+    setHalves(path ? tearAlong(path, width, height) : tearAcross(width, height));
     setStage("ripping");
     setTimeout(() => setStage("opened"), still ? 0 : RIP_MS);
   }
@@ -535,19 +470,14 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
               </div>
             </div>
             <div className="mx-auto w-full max-w-md px-6 pb-6 pt-2">
-              <p className="text-center font-display text-lg">
-                {more === 0
-                  ? "All unwrapped!"
-                  : `${more} more ${more === 1 ? "surprise" : "surprises"}`}
-              </p>
               <button
                 type="button"
-                className="button mt-2 w-full text-lg"
+                className="button w-full text-lg"
                 disabled={stage !== "opened"}
                 onClick={storeGift}
               >
                 {more > 0
-                  ? "Next surprise"
+                  ? `Next surprise (${more} left)`
                   : options.length === 1
                     ? "Review your gift"
                     : "Review all gifts"}
@@ -557,16 +487,24 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
         )}
         {stage === "ripping" && (
           <div aria-hidden="true">
-            <div className="rip rip-left">
-              <div className="fixed inset-0" style={{ clipPath: tearClip(edge, "left") }}>
-                <Wrapped option={option} recipientName={recipientName} left={left} />
+            {halves.map((half) => (
+              <div
+                key={half.clip}
+                className="rip"
+                style={
+                  {
+                    "--rip-x": `${half.dx}px`,
+                    "--rip-y": `${half.dy}px`,
+                    "--rip-turn": `${half.rotate}deg`,
+                    transformOrigin: half.origin,
+                  } as CSSProperties
+                }
+              >
+                <div className="fixed inset-0" style={{ clipPath: half.clip }}>
+                  <Wrapped option={option} recipientName={recipientName} left={left} />
+                </div>
               </div>
-            </div>
-            <div className="rip rip-right">
-              <div className="fixed inset-0" style={{ clipPath: tearClip(edge, "right") }}>
-                <Wrapped option={option} recipientName={recipientName} left={left} />
-              </div>
-            </div>
+            ))}
           </div>
         )}
         <Basket count={index} />
