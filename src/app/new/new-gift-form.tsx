@@ -12,6 +12,7 @@ import {
   type SkinId,
 } from "@/lib/skins";
 import { Bow, GiftTag } from "../gift-wrap";
+import { Logo } from "../logo";
 
 function swatch(id: SkinId) {
   const { wrap, ribbon } = SKINS[id];
@@ -60,6 +61,7 @@ export function NewGiftForm({ cardId }: { cardId?: string }) {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3.5">
+      {cardId && <Logo className="mb-1 text-xl" />}
       {cardId && (
         <p className="self-start rounded-full bg-mist px-3 py-1.5 text-sm font-semibold text-action">
           Your card is ready to fill

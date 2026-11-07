@@ -62,6 +62,20 @@ async function Result({ gift }: { gift: Gift }) {
   );
 }
 
+/** The wrapped gift across the top of the screen, ready to hand over or send. */
+function WrappedTop({ gift }: { gift: Gift }) {
+  return (
+    <div className="relative left-1/2 -mt-6 w-screen -translate-x-1/2" style={skinStyle(gift.skin)}>
+      <div className="wrap-paper flex h-[48dvh] min-h-64 flex-col items-center justify-between pb-8">
+        <Bow className="relative w-40" />
+        <div className="relative">
+          <GiftTag recipientName={gift.recipient_name} small />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 async function Share({ params }: Props) {
   await connection();
   const { id } = await params;
@@ -99,17 +113,7 @@ async function Share({ params }: Props) {
   if (gift.delivery === "card") {
     return (
       <div className="text-center">
-        <div
-          className="relative left-1/2 -mt-6 w-screen -translate-x-1/2"
-          style={skinStyle(gift.skin)}
-        >
-          <div className="wrap-paper flex h-[48dvh] min-h-64 flex-col items-center justify-between pb-8">
-            <Bow className="relative w-40" />
-            <div className="relative">
-              <GiftTag recipientName={gift.recipient_name} small />
-            </div>
-          </div>
-        </div>
+        <WrappedTop gift={gift} />
         <h1 className="mt-6 text-4xl font-semibold">Hand the card to {gift.recipient_name}</h1>
         <p className="mt-3 text-lg">It&apos;s all set. They just tap it with a phone.</p>
         {summary}
@@ -119,15 +123,16 @@ async function Share({ params }: Props) {
   }
 
   return (
-    <>
-      <Title>Send it to {gift.recipient_name}</Title>
+    <div className="text-center">
+      <WrappedTop gift={gift} />
+      <h1 className="mt-6 text-4xl font-semibold">Send it to {gift.recipient_name}</h1>
       {summary}
       <SendCard
         url={url}
         message={`${gift.giver_name} sent ${gift.recipient_name} a gift! Open it here: ${url}`}
       />
       <CancelGift giftId={gift.id} recipientName={gift.recipient_name} paid={paid} />
-    </>
+    </div>
   );
 }
 
