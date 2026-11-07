@@ -32,6 +32,7 @@ export type VariantGroup = { name: string; values: string[] };
 export type CheckedProduct = {
   id: string;
   title: string;
+  description: string;
   priceCents: number;
   merchant: string;
   merchantUrl: string;
@@ -113,6 +114,7 @@ export function checkProduct(
   return {
     id: product.id,
     title: product.title,
+    description: product.description?.trim().slice(0, 600) ?? "",
     priceCents,
     merchant: offer.domain ?? "",
     merchantUrl: offer.url ?? "",

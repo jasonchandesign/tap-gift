@@ -1,37 +1,42 @@
 import Link from "next/link";
-import { Present } from "./present";
 
 const STEPS = [
-  ["Tell us what they love", "AI narrows it down to a few great ideas."],
-  ["Keep your favorites", "Pay once with PayPal, and send a card or a link."],
-  ["They tap and unwrap", "They choose one. If it costs less, you get the difference back."],
+  ["Tell us what they love", "AI finds a few great ideas."],
+  ["Keep your favorites", "Pay once with PayPal."],
+  ["Hand over the card or send a link", "They tap, unwrap and choose."],
 ];
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
-      <div className="w-40">
-        <Present wiggle />
-      </div>
-      <h1 className="text-5xl font-semibold">Tap Gift</h1>
-      <p className="text-xl text-soft">Choosing the gift is hard. Unwrapping it shouldn&apos;t be.</p>
-      <ol className="flex w-full flex-col gap-3 text-left">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 p-6">
+      <p className="text-lg font-extrabold tracking-tight">Tap Gift</p>
+      <h1 className="mt-2 text-4xl font-semibold leading-tight">
+        You narrow it down. They unwrap it.
+      </h1>
+      <p className="text-lg text-soft">
+        The easy way to give a child a gift they&apos;ll love, with their favorite picked by them.
+      </p>
+      <ol className="flex flex-col gap-4 rounded-2xl border border-line p-5">
         {STEPS.map(([title, detail], index) => (
-          <li key={title} className="flex gap-3 rounded-2xl border border-line bg-paper p-4">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-berry font-semibold text-white">
+          <li key={title} className="flex gap-3.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-mist font-bold text-action">
               {index + 1}
             </span>
             <span>
-              <span className="block font-semibold">{title}</span>
+              <span className="block font-bold">{title}</span>
               <span className="block text-soft">{detail}</span>
             </span>
           </li>
         ))}
       </ol>
-      <Link href="/new" className="button">
-        Create a gift
+      <div className="flex-1" />
+      <Link href="/new" className="button text-lg">
+        Start a gift
       </Link>
-      <p className="text-sm text-soft">Have a Tap Gift card? Tap it with your phone to start.</p>
+      <p className="text-center text-sm text-soft">
+        If they choose a cheaper gift, you get the difference back. Have a Tap Gift card? Tap it
+        with your phone to start.
+      </p>
     </main>
   );
 }

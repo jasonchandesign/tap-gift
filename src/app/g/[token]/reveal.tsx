@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type CSSProperties, type FormEvent } from "react";
 import { Confetti } from "../../confetti";
-import { Present } from "../../present";
+import { Bow, GiftTag, TagString } from "../../gift-wrap";
 
 export type KidOption = {
   id: string;
   title: string;
   imageUrl: string;
+  description: string;
   summary: string;
   size: string;
   variants: { name: string; values: string[] }[];
+  wrapImage: string;
+  wrapSize: string;
 };
 
 export type KidChosen = {
@@ -29,6 +32,10 @@ type Props = {
   options: KidOption[];
   chosen: KidChosen | null;
 };
+
+const SURPRISES = ["A surprise", "Two surprises", "Three surprises", "Four surprises", "Five surprises"];
+const RIP_MS = 900;
+const STORE_MS = 550;
 
 function GiftPicture({ option }: { option: { imageUrl: string } }) {
   return (
@@ -62,7 +69,7 @@ function Done({
       body: JSON.stringify({ note }),
     }).catch(() => null);
     if (response?.ok) setSent(true);
-    else setError("That didn't send. Please try again.");
+    else setError("That didn't save. Please try again.");
   }
 
   return (
@@ -75,20 +82,24 @@ function Done({
       <p className="mt-4 text-xl font-semibold">{chosen.title}</p>
       {chosen.details && <p className="text-soft">{chosen.details}</p>}
       {sent ? (
-        <p className="mt-6 text-lg text-pine">Your thank-you is on its way to {giverName}.</p>
+        <p className="mt-6 text-lg text-accent">We saved your thank-you for {giverName}.</p>
       ) : (
         <form onSubmit={submit} className="mt-6 flex flex-col gap-3 text-left">
           <label className="flex flex-col gap-1 font-medium">
             Say thank you to {giverName}
             <textarea name="note" className="field text-lg" rows={3} required maxLength={500} />
           </label>
+          <p className="-mt-1 text-sm text-soft">
+            Demo only: this isn&apos;t emailed. The real app would send it to {giverName}&apos;s PayPal
+            email.
+          </p>
           {error && (
-            <p role="alert" className="text-berry">
+            <p role="alert" className="text-alert">
               {error}
             </p>
           )}
           <button type="submit" className="button">
-            Send thank you
+            Save thank you
           </button>
         </form>
       )}
@@ -101,12 +112,78 @@ function Done({
   );
 }
 
+function Wrapped({
+  option,
+  recipientName,
+  left,
+  onUnwrap,
+}: {
+  option: KidOption;
+  recipientName: string;
+  left: number;
+  onUnwrap?: () => void;
+}) {
+  const paper = {
+    "--wrap-pattern": option.wrapImage,
+    "--wrap-pattern-size": option.wrapSize,
+  } as CSSProperties;
+
+  return (
+    <section
+      className="wrap-paper fixed inset-0 flex flex-col items-center overflow-y-auto px-6 pb-8 pt-8"
+      style={paper}
+    >
+      <Bow className="relative w-44 shrink-0" />
+      <TagString className="relative -mt-8 h-20 shrink-0" />
+      <div className="present-wiggle relative -mt-3 flex w-full shrink-0 justify-center">
+        <GiftTag recipientName={recipientName} />
+      </div>
+      <div className="min-h-6 flex-1" />
+      <div className="relative flex w-full max-w-md flex-col items-center gap-3">
+        <p className="rounded-lg bg-action px-3 py-0.5 font-display text-xl text-paper">
+          {SURPRISES[left - 1]} inside
+        </p>
+        <button
+          type="button"
+          className="button button-paper w-full text-lg"
+          tabIndex={onUnwrap ? 0 : -1}
+          onClick={onUnwrap}
+        >
+          Unwrap
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function Basket({ count }: { count: number }) {
+  return (
+    <div
+      className="fixed right-4 top-4 z-30 flex size-12 items-center justify-center rounded-full bg-paper text-ink shadow-lg"
+      role="img"
+      aria-label={`${count} ${count === 1 ? "gift" : "gifts"} in your basket`}
+    >
+      <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 10h18l-2 10H5L3 10zM7.5 10l4-6M16.5 10l-4-6M9.5 14v2.5M14.5 14v2.5" />
+      </svg>
+      {count > 0 && (
+        <span
+          key={count}
+          className="reveal-in absolute -right-1 -top-1 flex size-6 items-center justify-center rounded-full bg-accent text-xs font-bold text-paper ring-2 ring-paper"
+        >
+          {count}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function Reveal({ token, giverName, recipientName, note, cardId, options, chosen }: Props) {
-  const [stage, setStage] = useState<"cover" | "note" | "unwrap" | "choose">("cover");
+  const [stage, setStage] = useState<"wrapped" | "ripping" | "opened" | "storing" | "review">(
+    "wrapped",
+  );
   const [remaining, setRemaining] = useState(options);
   const [index, setIndex] = useState(0);
-  const [opening, setOpening] = useState(false);
-  const [opened, setOpened] = useState(false);
   const [selected, setSelected] = useState(options.length === 1 ? options[0].id : "");
   const [choice, setChoice] = useState<Record<string, string>>({});
   const [done, setDone] = useState(chosen);
@@ -119,11 +196,22 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
   const ready = !!selectedOption?.variants.every(({ name }) => choice[name]);
 
   function unwrap() {
-    setOpening(true);
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setStage("ripping");
+    setTimeout(() => setStage("opened"), still ? 0 : RIP_MS);
+  }
+
+  function storeGift() {
+    const last = index === options.length - 1;
+    setStage("storing");
     setTimeout(() => {
-      setOpening(false);
-      setOpened(true);
-    }, 750);
+      if (last) {
+        setStage("review");
+      } else {
+        setIndex(index + 1);
+        setStage("wrapped");
+      }
+    }, STORE_MS);
   }
 
   function select(id: string) {
@@ -157,81 +245,73 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
     setBusy(false);
   }
 
-  if (stage === "cover") {
-    return (
-      <section className="w-full max-w-md text-center">
-        <p className="text-lg text-soft">A gift for</p>
-        <h1 className="mt-1 text-6xl font-semibold">{recipientName}</h1>
-        <div className="mx-auto mt-6 w-60">
-          <Present wiggle />
-        </div>
-        <p className="mt-5 text-lg">From {giverName}</p>
-        <button type="button" className="button mt-4 px-10 text-lg" onClick={() => setStage("note")}>
-          Open your gift
-        </button>
-      </section>
-    );
-  }
-
-  if (stage === "note") {
-    return (
-      <section className="reveal-in w-full max-w-md -rotate-1 rounded-3xl border border-line bg-paper p-8 shadow-lg">
-        <p className="text-soft">A note from {giverName}</p>
-        <p className="mt-3 font-hand text-4xl leading-snug">{note}</p>
-        <button type="button" className="button mt-6 w-full" onClick={() => setStage("unwrap")}>
-          {options.length === 1 ? "Unwrap your gift" : `Unwrap your ${options.length} gifts`}
-        </button>
-      </section>
-    );
-  }
-
-  if (stage === "unwrap") {
+  if (stage !== "review") {
     const option = options[index];
-    const last = index === options.length - 1;
+    const left = options.length - index;
+    const more = left - 1;
+
     return (
-      <section className="w-full max-w-md text-center">
-        <p className="text-soft">
-          Gift {index + 1} of {options.length}
-        </p>
-        {opened ? (
-          <div key={option.id} className="reveal-in mt-4 rounded-3xl border border-line bg-paper p-6">
-            <Confetti />
-            <GiftPicture option={option} />
-            <h2 className="mt-4 text-xl font-semibold">{option.title}</h2>
-            {option.summary && <p className="text-soft">Comes in {option.summary}</p>}
-            <button
-              type="button"
-              className="button mt-5 w-full"
-              onClick={() => {
-                setOpened(false);
-                if (last) setStage("choose");
-                else setIndex(index + 1);
-              }}
-            >
-              {last ? (options.length === 1 ? "Keep going" : "Choose one") : "Next gift"}
-            </button>
-          </div>
+      <>
+        {stage === "wrapped" ? (
+          <Wrapped option={option} recipientName={recipientName} left={left} onUnwrap={unwrap} />
         ) : (
-          <button
-            type="button"
-            className="mx-auto mt-4 block w-64"
-            aria-label={`Unwrap gift ${index + 1}`}
-            disabled={opening}
-            onClick={unwrap}
-          >
-            <Present tone={index} wiggle opening={opening} />
-            <span className={`mt-4 block text-lg font-semibold ${opening ? "invisible" : ""}`}>
-              Tap to unwrap
-            </span>
-          </button>
+          <section className="fixed inset-0 flex flex-col bg-page">
+            {stage === "opened" && <Confetti key={option.id} />}
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-20">
+              <div className="mx-auto w-full max-w-md">
+                <div className={`mx-auto w-full max-w-64 ${stage === "storing" ? "to-basket" : ""}`}>
+                  <GiftPicture option={option} />
+                </div>
+                <h1 className="mt-5 text-2xl font-semibold">{option.title}</h1>
+                {option.description && <p className="mt-2 text-soft">{option.description}</p>}
+                {option.summary && <p className="mt-2 font-medium">Comes in {option.summary}</p>}
+              </div>
+            </div>
+            <div className="mx-auto w-full max-w-md px-6 pb-6 pt-2">
+              <p className="text-center font-display text-lg">
+                {more === 0
+                  ? "All unwrapped!"
+                  : `${more} more ${more === 1 ? "surprise" : "surprises"}`}
+              </p>
+              <button
+                type="button"
+                className="button mt-2 w-full text-lg"
+                disabled={stage !== "opened"}
+                onClick={storeGift}
+              >
+                {more > 0
+                  ? "Next surprise"
+                  : options.length === 1
+                    ? "Review your gift"
+                    : "Review all gifts"}
+              </button>
+            </div>
+          </section>
         )}
-      </section>
+        {stage === "ripping" && (
+          <div aria-hidden="true">
+            <div className="rip rip-left">
+              <Wrapped option={option} recipientName={recipientName} left={left} />
+            </div>
+            <div className="rip rip-right">
+              <Wrapped option={option} recipientName={recipientName} left={left} />
+            </div>
+          </div>
+        )}
+        <Basket count={index} />
+      </>
     );
   }
 
   return (
     <section className="reveal-in w-full max-w-xl">
-      <h1 className="text-center text-3xl font-semibold">
+      {note && (
+        <div className="-rotate-1 rounded-2xl border border-line bg-paper p-5 shadow-md">
+          <p className="text-sm text-soft">A note from {giverName}</p>
+          <p className="mt-1 font-hand text-3xl leading-snug wrap-anywhere">{note}</p>
+        </div>
+      )}
+      <h1 className="mt-6 text-center text-3xl font-semibold">
         {options.length === 1 ? "It's all yours!" : "Which one do you want?"}
       </h1>
       {remaining.length === 0 ? (
@@ -244,7 +324,7 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
             <li key={option.id}>
               <button
                 type="button"
-                className={`w-full rounded-2xl border bg-paper p-3 text-left ${selected === option.id ? "border-berry ring-2 ring-berry" : "border-line"}`}
+                className={`w-full rounded-2xl border bg-paper p-3 text-left ${selected === option.id ? "border-action ring-2 ring-action" : "border-line"}`}
                 aria-pressed={selected === option.id}
                 onClick={() => select(option.id)}
               >
@@ -264,7 +344,7 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
               <button
                 key={value}
                 type="button"
-                className={`chip ${choice[group.name] === value ? "ring-2 ring-berry" : ""}`}
+                className={`chip ${choice[group.name] === value ? "ring-2 ring-action" : ""}`}
                 aria-pressed={choice[group.name] === value}
                 onClick={() => setChoice((current) => ({ ...current, [group.name]: value }))}
               >
@@ -275,7 +355,7 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
         </fieldset>
       ))}
       {error && (
-        <p role="alert" className="mt-3 text-center text-berry">
+        <p role="alert" className="mt-3 text-center text-alert">
           {error}
         </p>
       )}

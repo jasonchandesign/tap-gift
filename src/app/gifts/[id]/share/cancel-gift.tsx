@@ -46,7 +46,7 @@ export function CancelGift({ giftId, recipientName, paid }: Props) {
     <section className="mt-8 rounded-2xl border border-line bg-paper p-5">
       <p>Cancel this gift? {recipientName} won&apos;t be able to open it.</p>
       {error && (
-        <p role="alert" className="mt-2 text-berry">
+        <p role="alert" className="mt-2 text-alert">
           {error}
         </p>
       )}

@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getGiftByToken } from "@/lib/gifts";
+import { skinFor } from "@/lib/skins";
 
 export const alt = "A virtual gift card from Tap Gift";
 export const size = { width: 1200, height: 630 };
@@ -9,7 +10,8 @@ export default async function Image({ params }: { params: Promise<{ token: strin
   const { token } = await params;
   const gift = await getGiftByToken(token);
   const recipient = gift?.recipient_name ?? "you";
-  const giver = gift?.giver_name ?? "someone special";
+  const giver = gift?.giver_name || "someone special";
+  const skin = skinFor(gift?.skin);
 
   return new ImageResponse(
     (
@@ -21,9 +23,9 @@ export default async function Image({ params }: { params: Promise<{ token: strin
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "#b3263e",
-          color: "white",
-          border: "28px solid #fff7ec",
+          background: skin.wrap,
+          color: skin.paper,
+          border: `28px solid ${skin.ribbon}`,
         }}
       >
         <div style={{ fontSize: 44 }}>A gift for</div>

@@ -1,163 +1,194 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-cream: #fff7ec;
-  --color-paper: #ffffff;
-  --color-ink: #2d1b14;
-  --color-soft: #75594c;
-  --color-line: #ecdccb;
-  --color-berry: #b3263e;
-  --color-berry-dark: #8f1b30;
-  --color-pine: #1f5c4a;
-  --color-gold: #e3a12f;
-  --font-sans: var(--font-geist-sans);
+  --color-page: var(--page);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-soft: var(--soft);
+  --color-line: var(--line);
+  --color-mist: var(--mist);
+  --color-action: var(--action);
+  --color-accent: var(--accent);
+  --color-alert: var(--alert);
+  --font-sans: var(--font-inter);
   --font-display: var(--font-fraunces);
   --font-hand: var(--font-caveat);
-  --font-mono: var(--font-geist-mono);
+}
+
+/* The gifter's neutral look. Kid pages replace these with a skin from src/lib/skins.ts. */
+:root {
+  --page: #ffffff;
+  --paper: #ffffff;
+  --ink: #0b2559;
+  --soft: #4a5a78;
+  --line: #dce5f2;
+  --mist: #eef4fc;
+  --action: #0a5bd3;
+  --action-dark: #0848a8;
+  --accent: #0a5bd3;
+  --alert: #b3261e;
+  --wrap: #0b2559;
+  --wrap-dark: #071a40;
+  --wrap-pattern: none;
+  --wrap-pattern-size: auto;
+  --ribbon: #8fb8f5;
+  --knot: #6e9ce6;
 }
 
 body {
-  background: var(--color-cream);
-  color: var(--color-ink);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 @layer base {
   h1,
   h2 {
     font-family: var(--font-fraunces), Georgia, serif;
+    letter-spacing: -0.015em;
   }
 }
 
-.field {
-  width: 100%;
-  border: 1px solid var(--color-line);
-  border-radius: 0.75rem;
-  background: var(--color-paper);
-  padding: 0.75rem 0.9rem;
-  font-size: 1rem;
-}
+@layer components {
+  .skin {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-dm-sans), Arial, Helvetica, sans-serif;
+  }
 
-.field:focus {
-  outline: 2px solid var(--color-berry);
-  outline-offset: 1px;
-}
+  .wrap-paper {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--wrap);
+    background-image: var(--wrap-pattern);
+    background-size: var(--wrap-pattern-size);
+    transition: background-color 0.35s;
+  }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--color-berry);
-  color: white;
-  font-weight: 600;
-  padding: 0.85rem 1.5rem;
-  text-align: center;
-  box-shadow: 0 6px 16px rgb(179 38 62 / 0.25);
-  transition: background 0.15s, transform 0.1s;
-}
+  .wrap-paper::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1.875rem;
+    margin-left: -0.9375rem;
+    background: var(--ribbon);
+    transition: background-color 0.35s;
+  }
 
-.button:active,
-.button-quiet:active {
-  transform: scale(0.97);
-}
+  .bow-ribbon {
+    fill: var(--ribbon);
+  }
 
-.button:hover {
-  background: var(--color-berry-dark);
-}
+  .bow-knot {
+    fill: var(--knot);
+  }
 
-.button:disabled {
-  opacity: 0.6;
-}
+  .tag-string {
+    fill: none;
+    stroke: var(--paper);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
 
-.button-quiet {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-line);
-  border-radius: 999px;
-  background: var(--color-paper);
-  font-weight: 600;
-  padding: 0.75rem 1.25rem;
-  text-align: center;
-  transition: border-color 0.15s, transform 0.1s;
-}
+  .field {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    background: var(--paper);
+    padding: 0.75rem 0.9rem;
+    font-size: 1rem;
+  }
 
-.button-quiet:hover {
-  border-color: var(--color-berry);
-}
+  .field:focus {
+    outline: 2px solid var(--action);
+    outline-offset: 1px;
+  }
 
-.chip {
-  border: 1px solid var(--color-line);
-  border-radius: 999px;
-  background: var(--color-paper);
-  padding: 0.4rem 0.85rem;
-  font-size: 0.9rem;
-}
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    border-radius: 999px;
+    background: var(--action);
+    color: white;
+    font-weight: 700;
+    padding: 0.85rem 1.5rem;
+    text-align: center;
+    transition: background 0.15s, transform 0.1s;
+  }
 
-.chip:hover {
-  border-color: var(--color-berry);
-}
+  .button:active,
+  .button-quiet:active {
+    transform: scale(0.97);
+  }
 
-.chip:disabled {
-  opacity: 0.6;
-}
+  .button:hover {
+    background: var(--action-dark);
+  }
 
-.button:disabled:hover {
-  background: var(--color-berry);
-}
+  .button:disabled {
+    opacity: 0.6;
+  }
 
-.present {
-  --box: var(--color-berry);
-  --top: var(--color-berry-dark);
-  --ribbon: var(--color-gold);
-  display: block;
-  width: 100%;
-  overflow: visible;
-  filter: drop-shadow(0 12px 14px rgb(45 27 20 / 0.22));
-}
+  .button:disabled:hover {
+    background: var(--action);
+  }
 
-.present-tone-1 {
-  --box: var(--color-pine);
-  --top: #174838;
-}
+  .button-paper,
+  .button-paper:hover {
+    background: var(--paper);
+    color: var(--action);
+  }
 
-.present-tone-2 {
-  --box: #5b3a7a;
-  --top: #472c61;
-}
+  .button-quiet {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--paper);
+    font-weight: 600;
+    padding: 0.6rem 1.25rem;
+    text-align: center;
+    transition: border-color 0.15s, transform 0.1s;
+  }
 
-.present-tone-3 {
-  --box: var(--color-gold);
-  --top: #c98716;
-  --ribbon: var(--color-berry);
-}
+  .button-quiet:hover {
+    border-color: var(--action);
+  }
 
-.present-box {
-  fill: var(--box);
-}
+  .icon-button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+  }
 
-.present-top {
-  fill: var(--top);
-}
+  .chip {
+    flex: none;
+    min-height: 2.5rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--paper);
+    padding: 0.4rem 0.85rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
 
-.present-shade {
-  fill: rgb(0 0 0 / 0.12);
-}
+  .chip:hover {
+    border-color: var(--action);
+  }
 
-.present-ribbon {
-  fill: var(--ribbon);
-}
-
-.present-knot {
-  fill: var(--ribbon);
-  stroke: rgb(0 0 0 / 0.15);
-  stroke-width: 2;
-}
-
-.present-lid {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
+  .chip:disabled {
+    opacity: 0.6;
+  }
 }
 
 .present-wiggle {
@@ -165,13 +196,50 @@ body {
   animation: gift-wiggle 2.4s ease-in-out infinite;
 }
 
-.present-opening {
-  transform-origin: 50% 90%;
-  animation: present-shake 0.3s ease-in-out;
+/* Two torn halves of the paper pull apart over the gift underneath. */
+.rip {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
 }
 
-.present-opening .present-lid {
-  animation: lid-off 0.6s 0.15s ease-in forwards;
+.rip-left {
+  clip-path: polygon(0 0, 52% 0, 47% 9%, 54% 18%, 46% 28%, 55% 38%, 47% 49%, 53% 60%, 45% 70%, 54% 81%, 47% 91%, 52% 100%, 0 100%);
+  transform-origin: 0 100%;
+  animation: rip-left 0.9s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
+}
+
+.rip-right {
+  clip-path: polygon(100% 0, 52% 0, 47% 9%, 54% 18%, 46% 28%, 55% 38%, 47% 49%, 53% 60%, 45% 70%, 54% 81%, 47% 91%, 52% 100%, 100% 100%);
+  transform-origin: 100% 100%;
+  animation: rip-right 0.9s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
+}
+
+.to-basket {
+  transform-origin: 100% 0;
+  animation: to-basket 0.55s ease-in forwards;
+}
+
+.typing {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.typing span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--soft);
+  animation: typing 1.1s ease-in-out infinite;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing span:nth-child(3) {
+  animation-delay: 0.3s;
 }
 
 .reveal-in {
@@ -203,14 +271,25 @@ body {
   95% { transform: rotate(-1.5deg); }
 }
 
-@keyframes present-shake {
-  0%, 100% { transform: rotate(0); }
-  25% { transform: rotate(-4deg); }
-  75% { transform: rotate(4deg); }
+@keyframes rip-left {
+  0% { transform: none; }
+  20% { transform: translateX(-10px) rotate(-1deg); }
+  100% { transform: translateX(-110%) rotate(-16deg); }
 }
 
-@keyframes lid-off {
-  to { transform: translate(55px, -130px) rotate(32deg); opacity: 0; }
+@keyframes rip-right {
+  0% { transform: none; }
+  20% { transform: translateX(10px) rotate(1deg); }
+  100% { transform: translateX(110%) rotate(16deg); }
+}
+
+@keyframes to-basket {
+  to { transform: translate(calc(50vw - 11rem), -3rem) scale(0.12); opacity: 0.3; }
+}
+
+@keyframes typing {
+  0%, 60%, 100% { transform: none; opacity: 0.5; }
+  30% { transform: translateY(-0.2rem); opacity: 1; }
 }
 
 @keyframes gift-reveal {
@@ -224,6 +303,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .present-wiggle, .present-opening, .present-opening .present-lid, .reveal-in { animation: none; }
-  .confetti { display: none; }
+  .present-wiggle, .reveal-in, .to-basket, .typing span { animation: none; }
+  .rip, .confetti { display: none; }
 }

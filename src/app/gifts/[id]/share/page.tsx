@@ -4,7 +4,8 @@ import { Suspense } from "react";
 import { chosenGift, settleRefund } from "@/lib/checkout";
 import { selectedOptions } from "@/lib/chat";
 import { formatDollars, getGift, giftUrl, type Gift } from "@/lib/gifts";
-import { Present } from "../../../present";
+import { skinStyle } from "@/lib/skins";
+import { Bow, GiftTag } from "../../../gift-wrap";
 import { CancelGift } from "./cancel-gift";
 import { SendCard } from "./send-card";
 
@@ -98,8 +99,16 @@ async function Share({ params }: Props) {
   if (gift.delivery === "card") {
     return (
       <div className="text-center">
-        <div className="mx-auto mt-6 w-40">
-          <Present wiggle />
+        <div
+          className="relative left-1/2 -mt-6 w-screen -translate-x-1/2"
+          style={skinStyle(gift.skin)}
+        >
+          <div className="wrap-paper flex h-[48dvh] min-h-64 flex-col items-center justify-between pb-8">
+            <Bow className="relative w-40" />
+            <div className="relative">
+              <GiftTag recipientName={gift.recipient_name} small />
+            </div>
+          </div>
         </div>
         <h1 className="mt-6 text-4xl font-semibold">Hand the card to {gift.recipient_name}</h1>
         <p className="mt-3 text-lg">It&apos;s all set. They just tap it with a phone.</p>

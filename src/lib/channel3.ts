@@ -14,6 +14,7 @@ export type VariantOption = {
 export type Product = {
   id: string;
   title: string;
+  description?: string | null;
   age?: string | null;
   brands?: { name?: string }[];
   images?: { url?: string; is_main_image?: boolean }[];

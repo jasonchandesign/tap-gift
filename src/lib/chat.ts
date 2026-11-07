@@ -1,27 +1,37 @@
 import { db } from "./db";
 import { isSizeGroup } from "./gifts-format";
 import type { CheckedProduct, VariantGroup } from "./rules";
+import type { Motif } from "./wraps";
 
 export const MAX_TURNS = 12;
 export const MAX_PICKS = 5;
 
-export type ChatMessage = { role: "user" | "assistant"; content: string };
+export type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  turn: number;
+  suggestions_json: string[];
+};
 
 export type VariantChoice = Record<string, string>;
 
 export type ShownOption = {
   id: string;
+  channel3_id: string;
+  turn: number;
   title: string;
+  description: string;
   price_cents: number;
   image_url: string;
   merchant: string;
   reason: string;
   variants_json: VariantGroup[];
   variant_choice_json: VariantChoice;
+  wrap_json: Motif[] | null;
 };
 
 const OPTION_FIELDS =
-  "id, title, price_cents, image_url, merchant, reason, variants_json, variant_choice_json";
+  "id, channel3_id, turn, title, description, price_cents, image_url, merchant, reason, variants_json, variant_choice_json, wrap_json";
 
 /** Claims one turn atomically. Returns the new count, or null if the gift can't shop. */
 export async function takeTurn(giftId: string) {
@@ -45,19 +55,35 @@ export async function refundTurn(giftId: string) {
 export async function listMessages(giftId: string) {
   const { query } = await db();
   const { rows } = await query<ChatMessage>(
-    "SELECT role, content FROM messages WHERE gift_id = $1 ORDER BY id",
+    "SELECT role, content, turn, suggestions_json FROM messages WHERE gift_id = $1 ORDER BY id",
     [giftId],
   );
   return rows;
 }
 
-export async function saveExchange(giftId: string, userText: string, assistantText: string) {
+export async function saveExchange(
+  giftId: string,
+  turn: number,
+  userText: string,
+  assistantText: string,
+  suggestions: string[],
+) {
   const { query } = await db();
   await query(
-    `INSERT INTO messages (gift_id, role, content)
-     VALUES ($1, 'user', $2), ($1, 'assistant', $3)`,
-    [giftId, userText, assistantText],
+    `INSERT INTO messages (gift_id, turn, role, content, suggestions_json)
+     VALUES ($1, $2, 'user', $3, '[]'), ($1, $2, 'assistant', $4, $5)`,
+    [giftId, turn, userText, assistantText, JSON.stringify(suggestions)],
   );
+}
+
+/** Every gift shown so far, so the gifter can scroll back through the conversation. */
+export async function allOptions(giftId: string) {
+  const { query } = await db();
+  const { rows } = await query<ShownOption>(
+    `SELECT ${OPTION_FIELDS} FROM options WHERE gift_id = $1 ORDER BY id`,
+    [giftId],
+  );
+  return rows;
 }
 
 export async function latestOptions(giftId: string) {
@@ -89,14 +115,15 @@ export async function saveOptions(
   const { query } = await db();
   for (const { product, reason } of picks) {
     await query(
-      `INSERT INTO options (gift_id, turn, channel3_id, title, price_cents, image_url,
+      `INSERT INTO options (gift_id, turn, channel3_id, title, description, price_cents, image_url,
          merchant, merchant_url, reason, rule_check_json, variants_json)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         giftId,
         turn,
         product.id,
         product.title,
+        product.description,
         product.priceCents,
         product.imageUrl,
         product.merchant,
@@ -109,38 +136,52 @@ export async function saveOptions(
   }
 }
 
+export type PickResult = "saved" | "full" | "size" | "missing";
+
 /**
- * Saves what the gifter is sending, with the size of anything that has sizes.
- * The kid chooses any color or version later.
- * The budget becomes the priciest pick, because that's the most the kid's choice can charge.
+ * Puts a gift in the cart, with its size if it has sizes. The kid chooses any color or version
+ * later. An open PayPal order was for the old cart, so it can't be used any more.
  */
-export async function savePicks(
+export async function addPick(
   giftId: string,
-  picks: { optionId: string; choice: VariantChoice }[],
-) {
+  optionId: string,
+  choice: VariantChoice,
+): Promise<PickResult> {
   const { query } = await db();
-  const optionIds = picks.map((pick) => pick.optionId);
   const { rows } = await query<ShownOption>(
-    `SELECT ${OPTION_FIELDS} FROM options WHERE gift_id = $1 AND id = ANY($2::bigint[])`,
-    [giftId, optionIds],
+    `SELECT ${OPTION_FIELDS} FROM options WHERE gift_id = $1 AND id = $2`,
+    [giftId, optionId],
   );
-  if (rows.length !== new Set(optionIds).size) return false;
+  const option = rows[0];
+  if (!option) return "missing";
 
-  await query("UPDATE options SET selected = false WHERE gift_id = $1", [giftId]);
-  for (const option of rows) {
-    const choice = picks.find(({ optionId }) => optionId === String(option.id))?.choice ?? {};
-    const sizes = option.variants_json.filter(isSizeGroup);
-    if (!sizes.every((group) => group.values.includes(choice[group.name] ?? ""))) return false;
+  const sizes = option.variants_json.filter(isSizeGroup);
+  if (!sizes.every((group) => group.values.includes(choice[group.name] ?? ""))) return "size";
 
-    await query("UPDATE options SET selected = true, variant_choice_json = $2 WHERE id = $1", [
-      option.id,
+  // The limit is checked in the same statement, so two quick taps can't pass it together.
+  const saved = await query<{ id: string }>(
+    `UPDATE options SET selected = true, variant_choice_json = $3
+     WHERE id = $2 AND (
+       SELECT count(*) FROM options WHERE gift_id = $1 AND selected AND id <> $2
+     ) < $4
+     RETURNING id`,
+    [
+      giftId,
+      optionId,
       JSON.stringify(Object.fromEntries(sizes.map(({ name }) => [name, choice[name]]))),
-    ]);
-  }
-  // An open PayPal order was for the old picks, so it can't be used for these.
-  await query(
-    "UPDATE gifts SET budget_cents = $2, paypal_order_id = NULL WHERE id = $1 AND status = 'draft'",
-    [giftId, Math.max(...rows.map((option) => option.price_cents))],
+      MAX_PICKS,
+    ],
   );
-  return true;
+  if (!saved.rows.length) return "full";
+  await query("UPDATE gifts SET paypal_order_id = NULL WHERE id = $1", [giftId]);
+  return "saved";
+}
+
+export async function removePick(giftId: string, optionId: string) {
+  const { query } = await db();
+  await query("UPDATE options SET selected = false WHERE gift_id = $1 AND id = $2", [
+    giftId,
+    optionId,
+  ]);
+  await query("UPDATE gifts SET paypal_order_id = NULL WHERE id = $1", [giftId]);
 }

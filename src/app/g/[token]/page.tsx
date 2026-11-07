@@ -5,8 +5,10 @@ import QRCode from "qrcode";
 import { Suspense } from "react";
 import { chosenGift } from "@/lib/checkout";
 import { selectedOptions, type VariantChoice } from "@/lib/chat";
-import { getGiftByToken, giftUrl } from "@/lib/gifts";
+import { getGiftByToken, giftUrl, type Gift as GiftRecord } from "@/lib/gifts";
 import { isSizeGroup, variantSummary } from "@/lib/gifts-format";
+import { skinFor, skinStyle } from "@/lib/skins";
+import { wrapPattern } from "@/lib/wraps";
 import { Reveal } from "./reveal";
 
 export const metadata: Metadata = {
@@ -35,6 +37,14 @@ async function Gift({ params }: Props) {
   const gift = await getGiftByToken(token);
   if (!gift) notFound();
 
+  return (
+    <div className="skin flex flex-1" style={skinStyle(gift.skin)}>
+      <GiftBody gift={gift} />
+    </div>
+  );
+}
+
+async function GiftBody({ gift }: { gift: GiftRecord }) {
   if (gift.status === "draft") {
     return <Message title="This gift isn't ready yet" body="Check back soon." />;
   }
@@ -63,23 +73,31 @@ async function Gift({ params }: Props) {
     );
   }
 
+  const paperColor = skinFor(gift.skin).wrapMotif;
+
   // Prices and stores stay on the server, because a gift shouldn't show what it cost.
   return (
-    <div className="m-auto flex w-full max-w-4xl items-center justify-center gap-10 p-6">
+    <div className="m-auto flex w-full max-w-4xl items-center justify-center p-6">
       <Reveal
         token={gift.token}
         giverName={gift.giver_name}
         recipientName={gift.recipient_name}
         note={gift.note}
         cardId={gift.delivery === "card" ? gift.card_id : null}
-        options={picks.map((pick) => ({
-          id: String(pick.id),
-          title: pick.title,
-          imageUrl: pick.image_url,
-          summary: variantSummary(pick.variants_json),
-          size: details(pick.variant_choice_json),
-          variants: pick.variants_json.filter((group) => !isSizeGroup(group)),
-        }))}
+        options={picks.map((pick, index) => {
+          const wrap = wrapPattern(pick.wrap_json, index, paperColor);
+          return {
+            id: String(pick.id),
+            title: pick.title,
+            imageUrl: pick.image_url,
+            description: pick.description || pick.reason,
+            summary: variantSummary(pick.variants_json),
+            size: details(pick.variant_choice_json),
+            variants: pick.variants_json.filter((group) => !isSizeGroup(group)),
+            wrapImage: wrap.image,
+            wrapSize: wrap.size,
+          };
+        })}
         chosen={
           chosen && {
             title: chosen.title,
@@ -90,9 +108,9 @@ async function Gift({ params }: Props) {
         }
       />
       {!chosen && (
-        <aside className="hidden w-44 shrink-0 text-center lg:block">
-          <div className="rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: qr }} />
-          <p className="mt-2 text-sm text-soft">Continue on your phone</p>
+        <aside className="fixed bottom-4 right-4 z-40 hidden w-44 rounded-xl bg-white p-2 text-center text-sm text-ink lg:block">
+          <div dangerouslySetInnerHTML={{ __html: qr }} />
+          Continue on your phone
         </aside>
       )}
     </div>

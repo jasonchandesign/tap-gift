@@ -9,7 +9,7 @@ import { ConfirmForm } from "./confirm-form";
 type Props = PageProps<"/gifts/[id]/confirm">;
 
 function describe(pick: ShownOption) {
-  const size = Object.values(pick.variant_choice_json).map((value) => `size ${value}`);
+  const size = Object.values(pick.variant_choice_json).map((value) => `Size ${value}`);
   return [...size, variantSummary(pick.variants_json)].filter(Boolean).join(", ");
 }
 
@@ -27,36 +27,29 @@ async function Confirm({ params, searchParams }: Props) {
   const prices = picks.map((pick) => pick.price_cents);
 
   return (
-    <>
-      <ul className="mt-4 flex flex-col gap-1">
-        {picks.map((pick) => (
-          <li key={pick.id} className="flex justify-between gap-4">
-            <span>
-              {pick.title}
-              {describe(pick) && ` (${describe(pick)})`}
-            </span>
-            <span className="font-semibold">{formatDollars(pick.price_cents)}</span>
-          </li>
-        ))}
-      </ul>
-      <ConfirmForm
-        giftId={gift.id}
-        giverName={gift.giver_name}
-        recipientName={gift.recipient_name}
-        total={formatDollars(Math.max(...prices))}
-        pricesDiffer={new Set(prices).size > 1}
-        savedNote={gift.note}
-        savedShipping={gift.shipping_json}
-        paypalFailed={paypal === "failed"}
-      />
-    </>
+    <ConfirmForm
+      giftId={gift.id}
+      recipientName={gift.recipient_name}
+      picks={picks.map((pick) => ({
+        id: pick.id,
+        title: pick.title,
+        imageUrl: pick.image_url,
+        price: formatDollars(pick.price_cents),
+        details: describe(pick),
+      }))}
+      total={formatDollars(Math.max(...prices))}
+      pricesDiffer={new Set(prices).size > 1}
+      savedName={gift.giver_name}
+      savedNote={gift.note}
+      savedShipping={gift.shipping_json}
+      paypalFailed={paypal === "failed"}
+    />
   );
 }
 
 export default function ConfirmPage(props: Props) {
   return (
-    <main className="mx-auto w-full max-w-xl p-6">
-      <h1 className="mt-4 text-3xl font-semibold">Finish your gift</h1>
+    <main className="mx-auto w-full max-w-xl px-4 pb-6 pt-2">
       <Suspense fallback={<p className="mt-6 text-soft">Loading...</p>}>
         <Confirm {...props} />
       </Suspense>

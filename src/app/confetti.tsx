@@ -1,4 +1,4 @@
-const COLORS = ["#b3263e", "#e3a12f", "#1f5c4a", "#5b3a7a", "#f28c6a"];
+const COLORS = ["var(--wrap)", "var(--ribbon)", "var(--accent)", "var(--knot)", "var(--action)"];
 const PIECES = Array.from({ length: 36 }, (_, index) => index);
 
 /** Plays once when it mounts. */

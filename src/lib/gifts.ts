@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { db } from "./db";
+import type { AudienceId, SkinId } from "./skins";
 
 export { formatDollars } from "./gifts-format";
 
@@ -40,6 +41,8 @@ export type Gift = {
   shipping_json: Shipping | null;
   card_id: string | null;
   delivery: "card" | "link";
+  skin: string;
+  audience: string;
   paypal_order_id: string | null;
   capture_id: string | null;
   paid_cents: number | null;
@@ -50,10 +53,11 @@ export type Gift = {
 };
 
 export type NewGift = {
-  giverName: string;
   recipientName: string;
   recipientAge: number;
   rules: Rules;
+  skin: SkinId;
+  audience: AudienceId;
   cardId?: string;
 };
 
@@ -70,17 +74,18 @@ export async function createGift(gift: NewGift) {
   const { query } = await db();
   await query(
     `INSERT INTO gifts (id, token, giver_name, recipient_name, recipient_age, budget_cents,
-       note, rules_json, card_id)
-     VALUES ($1, $2, $3, $4, $5, $6, '', $7, $8)`,
+       note, rules_json, card_id, skin, audience)
+     VALUES ($1, $2, '', $3, $4, $5, '', $6, $7, $8, $9)`,
     [
       id,
       randomBytes(16).toString("hex"),
-      gift.giverName,
       gift.recipientName,
       gift.recipientAge,
       DEFAULT_BUDGET_CENTS,
       JSON.stringify(gift.rules),
       gift.cardId ?? null,
+      gift.skin,
+      gift.audience,
     ],
   );
   return id;
@@ -107,13 +112,18 @@ export async function saveRules(id: string, budgetCents: number, rules: Rules) {
   );
 }
 
-export async function saveDelivery(id: string, note: string, shipping: Shipping) {
+export async function saveDelivery(
+  id: string,
+  giverName: string,
+  note: string,
+  shipping: Shipping,
+) {
   const { query } = await db();
-  await query("UPDATE gifts SET note = $2, shipping_json = $3 WHERE id = $1 AND status = 'draft'", [
-    id,
-    note,
-    JSON.stringify(shipping),
-  ]);
+  await query(
+    `UPDATE gifts SET giver_name = $2, note = $3, shipping_json = $4
+     WHERE id = $1 AND status = 'draft'`,
+    [id, giverName, note, JSON.stringify(shipping)],
+  );
 }
 
 export async function setPayPalOrder(id: string, orderId: string) {
