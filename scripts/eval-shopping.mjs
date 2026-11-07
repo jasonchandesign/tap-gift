@@ -106,7 +106,7 @@ async function runSession(prompt, refinement) {
   const ip = `198.51.100.${randomInt(1, 255)}`;
   const created = await post(
     "/api/gifts",
-    { recipientName: prompt.name, recipientAge: prompt.age, skin: "ribbon", audience: prompt.audience },
+    { recipientName: prompt.name, recipientLastName: "Eval", recipientAge: prompt.age, skin: "ribbon", audience: prompt.audience },
     ip,
   );
   if (!created.data.id) throw new Error(`Couldn't create a gift: ${created.status}`);

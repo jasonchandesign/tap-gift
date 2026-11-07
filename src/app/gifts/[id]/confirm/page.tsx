@@ -30,6 +30,7 @@ async function Confirm({ params, searchParams }: Props) {
     <ConfirmForm
       giftId={gift.id}
       recipientName={gift.recipient_name}
+      recipientLastName={gift.recipient_last_name}
       picks={picks.map((pick) => ({
         id: pick.id,
         title: pick.title,

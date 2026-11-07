@@ -34,6 +34,8 @@ export type Gift = {
   token: string;
   giver_name: string;
   recipient_name: string;
+  /** Only for the shipping label. The gift tag uses the first name. */
+  recipient_last_name: string;
   recipient_age: number;
   budget_cents: number;
   note: string;
@@ -54,6 +56,7 @@ export type Gift = {
 
 export type NewGift = {
   recipientName: string;
+  recipientLastName: string;
   recipientAge: number;
   rules: Rules;
   skin: SkinId;
@@ -74,8 +77,8 @@ export async function createGift(gift: NewGift) {
   const { query } = await db();
   await query(
     `INSERT INTO gifts (id, token, giver_name, recipient_name, recipient_age, budget_cents,
-       note, rules_json, card_id, skin, audience)
-     VALUES ($1, $2, '', $3, $4, $5, '', $6, $7, $8, $9)`,
+       note, rules_json, card_id, skin, audience, recipient_last_name)
+     VALUES ($1, $2, '', $3, $4, $5, '', $6, $7, $8, $9, $10)`,
     [
       id,
       randomBytes(16).toString("hex"),
@@ -86,6 +89,7 @@ export async function createGift(gift: NewGift) {
       gift.cardId ?? null,
       gift.skin,
       gift.audience,
+      gift.recipientLastName,
     ],
   );
   return id;
@@ -198,9 +202,17 @@ export async function attachCard(cardId: string, giftId: string) {
 export async function updateGiftDetails(id: string, details: Omit<NewGift, "rules" | "cardId">) {
   const { query } = await db();
   const { rows } = await query(
-    `UPDATE gifts SET recipient_name = $2, recipient_age = $3, skin = $4, audience = $5
+    `UPDATE gifts SET recipient_name = $2, recipient_age = $3, skin = $4, audience = $5,
+       recipient_last_name = $6
      WHERE id = $1 AND status = 'draft' RETURNING id`,
-    [id, details.recipientName, details.recipientAge, details.skin, details.audience],
+    [
+      id,
+      details.recipientName,
+      details.recipientAge,
+      details.skin,
+      details.audience,
+      details.recipientLastName,
+    ],
   );
   return rows.length > 0;
 }

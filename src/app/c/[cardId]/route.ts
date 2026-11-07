@@ -5,7 +5,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/c/[cardI
   const card = await lookupCard(cardId);
   const targets = {
     gift: card.state === "gift" ? `/g/${card.token}` : "",
-    blank: `/new?card=${cardId}`,
+    blank: `/?card=${cardId}`,
     unknown: "/card-empty",
   };
   return Response.redirect(`${appUrl()}${targets[card.state]}`, 307);

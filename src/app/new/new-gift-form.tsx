@@ -22,6 +22,7 @@ function swatch(id: SkinId) {
 type Editing = {
   id: string;
   recipientName: string;
+  recipientLastName: string;
   recipientAge: number;
   skin: string;
   audience: string;
@@ -32,6 +33,7 @@ type Props = { cardId?: string; editing?: Editing };
 export function NewGiftForm({ cardId, editing }: Props) {
   const router = useRouter();
   const [recipientName, setRecipientName] = useState(editing?.recipientName ?? "Mia");
+  const [recipientLastName, setRecipientLastName] = useState(editing?.recipientLastName ?? "");
   const [recipientAge, setRecipientAge] = useState(String(editing?.recipientAge ?? 9));
   const [audience, setAudience] = useState<Audience>(
     AUDIENCES.find(({ id }) => id === editing?.audience) ?? AUDIENCES[2],
@@ -53,7 +55,13 @@ export function NewGiftForm({ cardId, editing }: Props) {
     setError("");
 
     try {
-      const details = { recipientName, recipientAge: Number(recipientAge), skin, audience: audience.id };
+      const details = {
+        recipientName,
+        recipientLastName,
+        recipientAge: Number(recipientAge),
+        skin,
+        audience: audience.id,
+      };
       const response = await fetch(editing ? `/api/gifts/${editing.id}` : "/api/gifts", {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,14 +80,26 @@ export function NewGiftForm({ cardId, editing }: Props) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3.5">
       {cardId && <Logo className="mb-1 text-xl" />}
-      <h1 className="text-3xl font-semibold">{cardId && !editing ? "Let's fill this card" : "Who is it for?"}</h1>
-      <div className="grid grid-cols-[1fr_5.5rem] gap-3">
-        <label className="flex flex-col gap-1 text-sm font-semibold text-soft">
-          Kid&apos;s first name
+      <h1 className="text-3xl font-semibold">Who is this gift for?</h1>
+      <div className="grid grid-cols-[1fr_1fr_4.5rem] gap-2.5">
+        <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-soft">
+          First name
           <input
             className="field text-ink"
             value={recipientName}
             onChange={(event) => setRecipientName(event.target.value)}
+            autoComplete="off"
+            required
+            maxLength={60}
+          />
+        </label>
+        <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-soft">
+          Last name
+          <input
+            className="field text-ink"
+            value={recipientLastName}
+            onChange={(event) => setRecipientLastName(event.target.value)}
+            autoComplete="off"
             required
             maxLength={60}
           />
@@ -96,6 +116,9 @@ export function NewGiftForm({ cardId, editing }: Props) {
             required
           />
         </label>
+        <p className="col-span-3 -mt-1 text-sm text-soft">
+          The last name is only for shipping. The gift tag shows the first name.
+        </p>
       </div>
 
       <div className="flex gap-1 rounded-full bg-mist p-1" role="group" aria-label="Who the gift is for">

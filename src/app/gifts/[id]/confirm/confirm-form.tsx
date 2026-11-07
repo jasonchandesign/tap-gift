@@ -9,6 +9,7 @@ type Pick = { id: string; title: string; imageUrl: string; price: string; detail
 type Props = {
   giftId: string;
   recipientName: string;
+  recipientLastName: string;
   picks: Pick[];
   total: string;
   pricesDiffer: boolean;
@@ -75,7 +76,7 @@ export function ConfirmForm(props: Props) {
   const [note, setNote] = useState(props.savedNote || `Happy birthday, ${recipientName}!`);
   const [shipping, setShipping] = useState<Shipping>(
     props.savedShipping ?? {
-      name: `${recipientName} Sample`,
+      name: `${recipientName} ${props.recipientLastName}`.trim(),
       line1: "123 Sample Street",
       line2: "",
       city: "San Jose",

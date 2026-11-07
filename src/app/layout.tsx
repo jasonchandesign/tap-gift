@@ -25,7 +25,7 @@ const caveat = Caveat({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
   title: "Tap Gift",
-  description: "You narrow it down. They unwrap the magic.",
+  description: "A gift they choose, wrapped like a surprise.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

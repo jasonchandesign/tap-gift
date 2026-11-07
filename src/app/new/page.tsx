@@ -20,6 +20,7 @@ async function Start({ searchParams }: Props) {
         editing={{
           id: gift.id,
           recipientName: gift.recipient_name,
+          recipientLastName: gift.recipient_last_name,
           recipientAge: gift.recipient_age,
           skin: gift.skin,
           audience: gift.audience,
