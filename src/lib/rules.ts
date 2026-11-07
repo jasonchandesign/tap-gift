@@ -64,7 +64,12 @@ export type RuleCheck = {
   avoid_match: string | null;
 };
 
-export type VariantGroup = { name: string; values: string[] };
+export type VariantGroup = {
+  name: string;
+  values: string[];
+  /** A photo for each value that has one, such as each color. */
+  images?: Record<string, string>;
+};
 
 export type CheckedProduct = {
   id: string;
@@ -107,12 +112,18 @@ function categoryText(product: Product) {
 /** The choices a gifter must make, such as color or size. A single value isn't a choice. */
 function variantGroups(product: Product): VariantGroup[] {
   return (product.variants?.options ?? []).flatMap((option) => {
-    const values = (option.values ?? [])
+    const kept = (option.values ?? [])
       .filter((value) => value.exists !== false && value.available !== "OutOfStock")
-      .map((value) => value.label?.trim() ?? "")
-      .filter((label) => label && !/\bnull\b/i.test(label));
-    const unique = [...new Set(values)].slice(0, 30);
-    return option.name && unique.length > 1 ? [{ name: option.name, values: unique }] : [];
+      .map((value) => ({ label: value.label?.trim() ?? "", image: value.thumbnail_url ?? "" }))
+      .filter(({ label }) => label && !/\bnull\b/i.test(label));
+    const unique = [...new Set(kept.map(({ label }) => label))].slice(0, 30);
+    if (!option.name || unique.length < 2) return [];
+
+    const images: Record<string, string> = {};
+    for (const { label, image } of kept) {
+      if (unique.includes(label) && image.startsWith("https://") && !images[label]) images[label] = image;
+    }
+    return [{ name: option.name, values: unique, ...(Object.keys(images).length ? { images } : {}) }];
   });
 }
 

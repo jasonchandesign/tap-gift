@@ -73,13 +73,21 @@ export async function chooseGift(
        UPDATE gifts SET status = 'chosen', refund_cents = paid_cents - $3::integer
        WHERE id = $1 AND status = 'paid' RETURNING id
      ), choice AS (
-       UPDATE options SET variant_choice_json = $4::jsonb
+       UPDATE options SET variant_choice_json = $4::jsonb, image_url = COALESCE($6, image_url)
        WHERE id = $2::bigint AND EXISTS (SELECT 1 FROM claimed)
      )
      INSERT INTO orders (id, gift_id, option_id, amount_cents, status)
      SELECT $5::uuid, id, $2::bigint, $3::integer, 'completed' FROM claimed
      RETURNING id`,
-    [gift.id, option.id, option.price_cents, JSON.stringify(choice), randomUUID()],
+    [
+      gift.id,
+      option.id,
+      option.price_cents,
+      JSON.stringify(choice),
+      randomUUID(),
+      // The photo of the color they chose, so the thank-you screen shows that one.
+      option.variants_json.map((group) => group.images?.[choice[group.name]]).find(Boolean) ?? null,
+    ],
   );
   return claimed.rows.length ? "chosen" : "taken";
 }

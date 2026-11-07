@@ -24,7 +24,7 @@ export type KidOption = {
   description: string;
   summary: string;
   size: string;
-  variants: { name: string; values: string[] }[];
+  variants: { name: string; values: string[]; images?: Record<string, string> }[];
   wrapImage: string;
   wrapSize: string;
 };
@@ -382,6 +382,12 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
   if (done) return <Done token={token} giverName={giverName} cardId={cardId} chosen={done} />;
 
   const selectedOption = remaining.find(({ id }) => id === selected);
+
+  /** The photo of the color or style picked so far, or the main photo. */
+  function pictureOf(option: KidOption) {
+    if (option.id !== selected) return option.imageUrl;
+    return option.variants.map((group) => group.images?.[choice[group.name]]).find(Boolean) ?? option.imageUrl;
+  }
   const ready = !!selectedOption?.variants.every(({ name }) => choice[name]);
 
   function unwrap(path?: Point[]) {
@@ -425,7 +431,7 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
 
     if (response?.ok) {
       const details = [...Object.values(choice), option.size].filter(Boolean).join(", ");
-      setDone({ ...option, details, thankYou: null });
+      setDone({ ...option, imageUrl: pictureOf(option), details, thankYou: null });
       return;
     }
     if (data?.result === "unavailable") {
@@ -531,16 +537,20 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
           These all sold out. Ask {giverName} to pick something new.
         </p>
       ) : (
-        <ul className="mt-5 grid grid-cols-2 gap-3">
+        // One row that runs off the screen's edges, so the choices sit right under it.
+        <ul className="no-scrollbar -mx-6 mt-5 flex snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 pb-2 pt-1">
           {remaining.map((option) => (
-            <li key={option.id}>
+            <li key={option.id} className="w-[62%] max-w-60 shrink-0 snap-start">
               <button
                 type="button"
-                className={`w-full rounded-2xl border bg-paper p-3 text-left ${selected === option.id ? "border-action ring-2 ring-action" : "border-line"}`}
+                className={`h-full w-full rounded-2xl border bg-paper p-3 text-left ${selected === option.id ? "border-action ring-2 ring-action" : "border-line"}`}
                 aria-pressed={selected === option.id}
-                onClick={() => select(option.id)}
+                onClick={(event) => {
+                  select(option.id);
+                  event.currentTarget.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+                }}
               >
-                <GiftPicture option={option} />
+                <GiftPicture option={{ imageUrl: pictureOf(option) }} />
                 <span className="mt-2 block font-semibold">{option.title}</span>
                 {option.summary && <span className="block text-sm text-soft">{option.summary}</span>}
               </button>
@@ -549,17 +559,26 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
         </ul>
       )}
       {selectedOption?.variants.map((group) => (
-        <fieldset key={group.name} className="mt-5">
+        <fieldset key={group.name} className="mt-4">
           <legend className="text-lg font-semibold">Pick your {group.name.toLowerCase()}</legend>
           <div className="mt-2 flex flex-wrap gap-2">
             {group.values.map((value) => (
               <button
                 key={value}
                 type="button"
-                className={`chip ${choice[group.name] === value ? "ring-2 ring-action" : ""}`}
+                className={`chip inline-flex items-center gap-2 ${group.images?.[value] ? "py-1 pl-1" : ""} ${choice[group.name] === value ? "ring-2 ring-action" : ""}`}
                 aria-pressed={choice[group.name] === value}
                 onClick={() => setChoice((current) => ({ ...current, [group.name]: value }))}
               >
+                {group.images?.[value] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={group.images[value]}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="size-8 rounded-full bg-white object-cover"
+                  />
+                )}
                 {value}
               </button>
             ))}

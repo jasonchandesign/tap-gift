@@ -8,7 +8,13 @@ export type Offer = {
 
 export type VariantOption = {
   name?: string;
-  values?: { label?: string; exists?: boolean; available?: string | null }[];
+  values?: {
+    label?: string;
+    exists?: boolean;
+    available?: string | null;
+    /** A photo of the product in this color or style. */
+    thumbnail_url?: string;
+  }[];
 };
 
 export type Product = {
