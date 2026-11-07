@@ -1,5 +1,5 @@
 import type { Offer, Product } from "./channel3";
-import { isSizeGroup, matchSize } from "./gifts-format";
+import { ageLabel, isSizeGroup, matchSize } from "./gifts-format";
 
 /** Hard limits live here, in code, so the model can't talk its way past them. */
 
@@ -50,6 +50,8 @@ export function isOffLimits(text: string, age: number) {
   return blockedAt(age).some(({ pattern }) => pattern.test(text));
 }
 
+const MAX_PHOTOS = 6;
+
 const US_DOMAIN = /\.(com|us|net|org)$/i;
 
 export type RuleCheck = {
@@ -72,6 +74,10 @@ export type CheckedProduct = {
   merchant: string;
   merchantUrl: string;
   imageUrl: string;
+  /** Every photo, main one first. */
+  images: string[];
+  /** Such as "Ages 7+", when the listing says. */
+  ageLabel: string;
   age: string | null;
   category: string;
   variants: VariantGroup[];
@@ -137,6 +143,9 @@ export function checkProduct(
   const priceCents = toCents(offer);
   const images = product.images ?? [];
   const imageUrl = (images.find((image) => image.is_main_image) ?? images[0])?.url ?? "";
+  const photos = [
+    ...new Set([imageUrl, ...images.map((image) => image.url ?? "")].filter((url) => url.startsWith("https://"))),
+  ].slice(0, MAX_PHOTOS);
 
   if (priceCents > budgetCents || blocked || avoidMatch || !imageUrl.startsWith("https://")) {
     return null;
@@ -155,6 +164,8 @@ export function checkProduct(
     merchant: offer.domain ?? "",
     merchantUrl: offer.url ?? "",
     imageUrl,
+    images: photos,
+    ageLabel: ageLabel(`${product.title} ${product.description ?? ""}`),
     age: product.age ?? null,
     category,
     variants,

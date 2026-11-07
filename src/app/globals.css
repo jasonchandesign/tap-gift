@@ -23,9 +23,10 @@
   --soft: #4a5a78;
   --line: #dce5f2;
   --mist: #eef4fc;
-  --action: #0a5bd3;
-  --action-dark: #0848a8;
-  --accent: #0a5bd3;
+  /* PayPal's blue. */
+  --action: #0070e0;
+  --action-dark: #005cb8;
+  --accent: #0070e0;
   --alert: #b3261e;
   --wrap: #0b2559;
   --wrap-dark: #071a40;
@@ -196,22 +197,21 @@ body {
   animation: gift-wiggle 2.4s ease-in-out infinite;
 }
 
-/* Two torn halves of the paper pull apart over the gift underneath. */
+/* Two torn halves of the paper pull apart over the gift underneath. The torn edge is set inline. */
 .rip {
   position: fixed;
   inset: 0;
   z-index: 20;
   pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.35));
 }
 
 .rip-left {
-  clip-path: polygon(0 0, 52% 0, 47% 9%, 54% 18%, 46% 28%, 55% 38%, 47% 49%, 53% 60%, 45% 70%, 54% 81%, 47% 91%, 52% 100%, 0 100%);
   transform-origin: 0 100%;
   animation: rip-left 0.9s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
 }
 
 .rip-right {
-  clip-path: polygon(100% 0, 52% 0, 47% 9%, 54% 18%, 46% 28%, 55% 38%, 47% 49%, 53% 60%, 45% 70%, 54% 81%, 47% 91%, 52% 100%, 100% 100%);
   transform-origin: 100% 100%;
   animation: rip-right 0.9s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
 }
@@ -305,4 +305,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .present-wiggle, .reveal-in, .to-basket, .typing span { animation: none; }
   .rip, .confetti { display: none; }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

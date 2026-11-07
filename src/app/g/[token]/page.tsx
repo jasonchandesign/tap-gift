@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { chosenGift } from "@/lib/checkout";
 import { selectedOptions, type VariantChoice } from "@/lib/chat";
 import { getGiftByToken, giftUrl, type Gift as GiftRecord } from "@/lib/gifts";
-import { isSizeGroup, variantSummary } from "@/lib/gifts-format";
+import { isSizeGroup, photosOf, variantSummary } from "@/lib/gifts-format";
 import { skinFor, skinStyle } from "@/lib/skins";
 import { wrapPattern } from "@/lib/wraps";
 import { Reveal } from "./reveal";
@@ -90,6 +90,8 @@ async function GiftBody({ gift }: { gift: GiftRecord }) {
             id: String(pick.id),
             title: pick.title,
             imageUrl: pick.image_url,
+            images: photosOf(pick),
+            ageLabel: pick.age_label,
             description: pick.description || pick.reason,
             summary: variantSummary(pick.variants_json),
             size: details(pick.variant_choice_json),

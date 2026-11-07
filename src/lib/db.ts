@@ -63,6 +63,8 @@ ALTER TABLE options ADD COLUMN IF NOT EXISTS merchant text;
 ALTER TABLE options ADD COLUMN IF NOT EXISTS selected boolean NOT NULL DEFAULT false;
 ALTER TABLE options ADD COLUMN IF NOT EXISTS variants_json jsonb NOT NULL DEFAULT '[]';
 ALTER TABLE options ADD COLUMN IF NOT EXISTS variant_choice_json jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE options ADD COLUMN IF NOT EXISTS images_json jsonb NOT NULL DEFAULT '[]';
+ALTER TABLE options ADD COLUMN IF NOT EXISTS age_label text NOT NULL DEFAULT '';
 ALTER TABLE gifts ADD COLUMN IF NOT EXISTS shipping_json jsonb;
 ALTER TABLE gifts DROP COLUMN IF EXISTS parent_contact;
 ALTER TABLE gifts DROP COLUMN IF EXISTS approve_secret;

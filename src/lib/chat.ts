@@ -23,6 +23,9 @@ export type ShownOption = {
   description: string;
   price_cents: number;
   image_url: string;
+  /** Every photo, main one first. Empty for gifts saved before photos were kept. */
+  images_json: string[];
+  age_label: string;
   merchant: string;
   reason: string;
   variants_json: VariantGroup[];
@@ -31,7 +34,7 @@ export type ShownOption = {
 };
 
 const OPTION_FIELDS =
-  "id, channel3_id, turn, title, description, price_cents, image_url, merchant, reason, variants_json, variant_choice_json, wrap_json";
+  "id, channel3_id, turn, title, description, price_cents, image_url, images_json, age_label, merchant, reason, variants_json, variant_choice_json, wrap_json";
 
 /** Claims one turn atomically. Returns the new count, or null if the gift can't shop. */
 export async function takeTurn(giftId: string) {
@@ -116,8 +119,8 @@ export async function saveOptions(
   for (const { product, reason } of picks) {
     await query(
       `INSERT INTO options (gift_id, turn, channel3_id, title, description, price_cents, image_url,
-         merchant, merchant_url, reason, rule_check_json, variants_json)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+         merchant, merchant_url, reason, rule_check_json, variants_json, images_json, age_label)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
       [
         giftId,
         turn,
@@ -131,6 +134,8 @@ export async function saveOptions(
         reason,
         JSON.stringify(product.check),
         JSON.stringify(product.variants),
+        JSON.stringify(product.images),
+        product.ageLabel,
       ],
     );
   }

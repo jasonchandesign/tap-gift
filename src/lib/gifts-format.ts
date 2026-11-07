@@ -4,6 +4,26 @@ export function formatDollars(cents: number) {
 
 type Group = { name: string; values: string[] };
 
+/** A gift's photos. Gifts saved before photos were kept have only the main one. */
+export function photosOf(option: { images_json?: string[]; image_url: string }) {
+  return option.images_json?.length ? option.images_json : [option.image_url];
+}
+
+const AGE_RANGE = /\bages?\s*(\d{1,2})\s*(?:(\+|and up|years? and up|& up)|(?:-|–|to)\s*(\d{1,2}))/i;
+const AGE_PLUS = /\b(?:kids|children|boys|girls)\s*(\d{1,2})\s*\+/i;
+
+/** The age a listing gives, such as "Ages 7+" or "Ages 8–12", or "" if it doesn't say. */
+export function ageLabel(text: string) {
+  const range = text.match(AGE_RANGE);
+  if (range) {
+    const [, from, up, to] = range;
+    if (up) return `Ages ${Number(from)}+`;
+    if (to && Number(to) > Number(from)) return `Ages ${Number(from)}–${Number(to)}`;
+  }
+  const plus = text.match(AGE_PLUS);
+  return plus ? `Ages ${Number(plus[1])}+` : "";
+}
+
 /** Sizes belong to the adult. Every other choice, like color or version, is the kid's. */
 export function isSizeGroup(group: Group) {
   return /size/i.test(group.name);

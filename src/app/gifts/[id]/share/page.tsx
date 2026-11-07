@@ -129,8 +129,17 @@ async function Share({ params }: Props) {
       {summary}
       <SendCard
         url={url}
-        recipientName={gift.recipient_name}
-        message={`${gift.giver_name} sent ${gift.recipient_name} a gift! Open it here: ${url}`}
+        shareText={`${gift.giver_name} sent ${gift.recipient_name} a gift! Open it here: ${url}`}
+        emailSubject={`${gift.giver_name} sent ${gift.recipient_name} a gift`}
+        emailBody={[
+          "Hi!",
+          "",
+          `${gift.giver_name} sent ${gift.recipient_name} a gift. Open this link on a phone to unwrap ${
+            picks.length === 1 ? "it" : `${picks.length} surprises and pick one to keep`
+          }:`,
+          "",
+          url,
+        ].join("\n")}
       />
       <CancelGift giftId={gift.id} recipientName={gift.recipient_name} paid={paid} />
     </div>
