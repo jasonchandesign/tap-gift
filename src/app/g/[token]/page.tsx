@@ -77,7 +77,7 @@ async function GiftBody({ gift }: { gift: GiftRecord }) {
 
   // Prices and stores stay on the server, because a gift shouldn't show what it cost.
   return (
-    <div className="m-auto flex w-full max-w-4xl items-center justify-center p-6">
+    <div className="mx-auto flex w-full max-w-4xl items-start justify-center p-6 pt-10">
       <Reveal
         token={gift.token}
         giverName={gift.giver_name}

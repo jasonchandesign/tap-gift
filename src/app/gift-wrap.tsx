@@ -1,7 +1,16 @@
+import type { ReactNode } from "react";
+
 type Tag = {
   recipientName: string;
+  /** Shown smaller under the name. */
+  giverName?: string;
   /** The smaller version shown in the gifter's preview. */
   small?: boolean;
+  /** What's written on the back, for a tag that flips over. */
+  back?: ReactNode;
+  flipped?: boolean;
+  /** Tapping the tag turns it over. */
+  onFlip?: () => void;
 };
 
 export function Bow({ className = "" }: { className?: string }) {
@@ -33,16 +42,55 @@ function nameSize(name: string, small: boolean) {
   return small ? "text-4xl" : "text-7xl";
 }
 
-export function GiftTag({ recipientName, small = false }: Tag) {
+const HOLE = <span className="absolute left-1/2 top-3.5 size-4 -translate-x-1/2 rounded-full bg-action" />;
+
+export function GiftTag({ recipientName, giverName, small = false, back, flipped = false, onFlip }: Tag) {
   const Name = small ? "p" : "h1";
+  if (!small) {
+    // Both sides sit in one grid cell, so the tag is as tall as the fuller side.
+    return (
+      // Any tap on the tag, the back's button included, turns it over.
+      <div
+        className={`tag-flip relative w-full max-w-[16.5rem] -rotate-2 ${onFlip ? "cursor-pointer" : ""}`}
+        onClick={onFlip}
+      >
+        <div className={`tag-turn ${flipped ? "flipped" : ""}`}>
+          <div
+            className="tag-face flex flex-col rounded-2xl bg-paper px-5 pb-11 pt-10 text-center shadow-xl"
+            inert={flipped}
+          >
+            {HOLE}
+            {onFlip && back && (
+              <button type="button" className="absolute inset-0 rounded-2xl" aria-label="Turn the tag over to see how it works" />
+            )}
+            <p className="font-hand text-3xl leading-none text-soft">To:</p>
+            <Name
+              className={`mt-1 font-display font-semibold leading-none tracking-tight wrap-anywhere text-ink ${nameSize(recipientName, false)}`}
+            >
+              {recipientName}
+            </Name>
+            {giverName && (
+              <p className="mt-auto pt-6 font-hand text-2xl leading-tight text-soft">
+                From:
+                <span className="block wrap-anywhere text-ink">{giverName}</span>
+              </p>
+            )}
+          </div>
+          {back && (
+            <div className="tag-face tag-back rounded-2xl bg-paper px-5 pb-6 pt-10 text-center shadow-xl" inert={!flipped}>
+              {HOLE}
+              {back}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div
-      className={`-rotate-2 rounded-2xl bg-paper text-center shadow-xl ${small ? "w-52 px-3 py-3" : "relative w-full max-w-[16.5rem] px-5 pb-8 pt-11"}`}
+      className="w-52 -rotate-2 rounded-2xl bg-paper px-3 py-3 text-center shadow-xl"
     >
-      {!small && (
-        <span className="absolute left-1/2 top-3.5 size-4 -translate-x-1/2 rounded-full bg-action" />
-      )}
-      <p className={`font-hand leading-none text-soft ${small ? "text-2xl" : "text-3xl"}`}>To:</p>
+      <p className="font-hand text-2xl leading-none text-soft">To:</p>
       <Name
         className={`mt-1 font-display font-semibold leading-none tracking-tight wrap-anywhere text-ink ${nameSize(recipientName, small)}`}
       >

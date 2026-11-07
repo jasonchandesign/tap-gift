@@ -1,18 +1,21 @@
 "use client";
 
 import {
+  useEffect,
   useRef,
   useState,
   type CSSProperties,
   type FormEvent,
   type PointerEvent,
   type ReactNode,
+  type Ref,
 } from "react";
 import { useRouter } from "next/navigation";
 import { Confetti } from "../../confetti";
 import { Bow, GiftTag, TagString } from "../../gift-wrap";
 import { MoreText } from "../../more-text";
-import { Photos } from "../../photos";
+import { Arrows } from "../../arrows";
+import { Gallery } from "../../gallery";
 import { cutLength, MIN_CUT_PX, tearAcross, tearAlong, type Half, type Point } from "./tear";
 
 export type KidOption = {
@@ -235,12 +238,27 @@ function useCut(onTear?: (path: Point[]) => void) {
 function Wrapped({
   option,
   recipientName,
+  giverName,
   left,
+  arriving = false,
+  tagBack,
+  flipped = false,
+  onFlip,
+  holding = false,
   onUnwrap,
 }: {
   option: KidOption;
   recipientName: string;
+  giverName: string;
   left: number;
+  /** The intro written on the back of the tag. */
+  tagBack?: ReactNode;
+  flipped?: boolean;
+  onFlip?: () => void;
+  /** Keep the unwrap button hidden while the intro is showing. */
+  holding?: boolean;
+  /** Slide up from the bottom, as the next gift after one is put away. */
+  arriving?: boolean;
   onUnwrap?: (path?: Point[]) => void;
 }) {
   const paper = {
@@ -248,10 +266,27 @@ function Wrapped({
     "--wrap-pattern-size": option.wrapSize,
   } as CSSProperties;
   const { trail, handlers } = useCut(onUnwrap);
+  const swing = useRef<HTMLDivElement>(null);
+  const turned = useRef(flipped);
+
+  // Turning the tag over sets it swinging on its string, and it settles back down.
+  useEffect(() => {
+    if (turned.current === flipped) return;
+    turned.current = flipped;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Each swing eases out at its peak like a pendulum, smaller each time.
+    swing.current?.animate(
+      [0, 2.2, -1.5, 0.9, -0.45, 0.15, 0].map((degrees) => ({
+        transform: `rotate(${degrees}deg)`,
+        easing: "cubic-bezier(0.37, 0, 0.63, 1)",
+      })),
+      { duration: 2600 },
+    );
+  }, [flipped]);
 
   return (
     <section
-      className="wrap-paper fixed inset-0 flex touch-none select-none flex-col items-center overflow-y-auto px-6 pb-8 pt-8"
+      className={`wrap-paper fixed inset-0 flex touch-none select-none flex-col items-center overflow-y-auto px-6 pb-8 pt-8 ${arriving ? "slide-in-up" : ""}`}
       style={paper}
       {...handlers}
     >
@@ -274,19 +309,26 @@ function Wrapped({
         </svg>
       )}
       <Bow className="relative w-44 shrink-0" />
-      <TagString className="relative -mt-8 h-20 shrink-0" />
-      <div className="present-wiggle relative -mt-3 flex w-full shrink-0 justify-center">
-        <GiftTag recipientName={recipientName} />
+      {/* The tag hangs from a string tied to the bow, swaying from the knot. */}
+      <div className="tag-sway relative -mt-8 flex w-full shrink-0 flex-col items-center">
+        <div ref={swing} className="tag-swing flex w-full flex-col items-center">
+          <TagString className="relative h-20 shrink-0" />
+          <div className="relative -mt-3 flex w-full justify-center">
+            <GiftTag recipientName={recipientName} giverName={giverName} back={tagBack} flipped={flipped} onFlip={onFlip} />
+          </div>
+        </div>
       </div>
       <div className="min-h-6 flex-1" />
-      <div className="relative flex w-full max-w-md flex-col items-center gap-3">
+      <div
+        className={`relative flex w-full max-w-md flex-col items-center gap-3 ${holding ? "invisible" : arriving || tagBack ? "rise-in" : ""}`}
+      >
         <button
           type="button"
-          className="button button-paper w-full text-lg"
+          className="button w-full text-lg"
           tabIndex={onUnwrap ? 0 : -1}
           onClick={() => onUnwrap?.()}
         >
-          Unwrap ({left} left)
+          Unwrap Gift ({left} left)
         </button>
         <p className="rounded-lg bg-action/80 px-3 py-0.5 text-sm font-semibold text-paper">
           or swipe across the paper to rip it
@@ -297,48 +339,208 @@ function Wrapped({
 }
 
 const GIFT_ICON = (
-  <svg viewBox="0 0 24 24" className="size-9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7C10 3 7 4 8 6s4 1 4 1zM12 7c2-4 5-3 4-1s-4 1-4 1z" />
   </svg>
 );
 
 const HEART_ICON = (
-  <svg viewBox="0 0 24 24" className="size-9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
   </svg>
 );
 
 function IntroStep({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <li className="flex items-center gap-4 text-left">
+    <li className="flex items-center gap-3 text-left">
       <span className="shrink-0 text-action">{icon}</span>
-      <span className="font-display text-2xl">{children}</span>
+      <span className="font-display text-xl">{children}</span>
     </li>
   );
 }
 
-/** Before the first gift, so a child knows they unwrap them all and then keep one. */
-function Intro({ count, recipientName, onStart }: { count: number; recipientName: string; onStart: () => void }) {
+/** The back of the first tag: unwrap them all, then keep one. */
+function TagIntro({ count, start, label }: { count: number; start: Ref<HTMLButtonElement>; label: string }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/50 p-6">
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="intro-title"
-        className="reveal-in w-full max-w-sm rounded-3xl bg-paper p-7 text-center text-ink shadow-xl"
-      >
-        <h1 id="intro-title" className="text-3xl font-semibold">
-          <span className="block">{recipientName},</span>
-          You have {count} surprises!
-        </h1>
-        <ol className="mx-auto mt-6 flex w-fit flex-col gap-4">
-          <IntroStep icon={GIFT_ICON}>{count === 2 ? "Unwrap both" : `Unwrap all ${count}`}</IntroStep>
-          <IntroStep icon={HEART_ICON}>Pick 1 to keep</IntroStep>
-        </ol>
-        <button type="button" className="button mt-7 w-full text-lg" autoFocus onClick={onStart}>
-          Get started
+    <>
+      <h2 className="text-2xl font-semibold leading-tight">You have {count} surprises!</h2>
+      <ol className="mx-auto mt-4 flex w-fit flex-col gap-2.5">
+        <IntroStep icon={GIFT_ICON}>{count === 2 ? "Unwrap both" : `Unwrap all ${count}`}</IntroStep>
+        <IntroStep icon={HEART_ICON}>Pick 1 to keep</IntroStep>
+      </ol>
+      {/* The tag itself turns over when this is tapped. */}
+      <button ref={start} type="button" className="button mt-5 w-full">
+        {label}
+      </button>
+    </>
+  );
+}
+
+/** Rows of chips shown before the rest fold behind a "more" button. */
+const CHIP_ROWS = 3;
+const MORE_WIDTH = 48;
+const CHIP_GAP = 8;
+
+type Fold = { height: number; hideFrom: number; left: number; top: number };
+
+/**
+ * Chips that wrap onto as many rows as they need, folded to three rows with a "more" button at the
+ * end of the third. Every chip stays in the layout so the rows can always be measured; the ones past
+ * the fold are clipped or hidden.
+ */
+function ChipRows({ label, selected, children }: { label: string; selected: number; children: ReactNode[] }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [fold, setFold] = useState<Fold | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    const element = box.current;
+    if (!element) return;
+    const measure = () => {
+      // Folded chips sit inside a wrapper, so find every chip, not just direct children.
+      const chips = [...element.querySelectorAll<HTMLElement>("button:not([data-more])")];
+      const tops = [...new Set(chips.map((chip) => chip.offsetTop))].sort((a, b) => a - b);
+      let next: Fold | null = null;
+      if (tops.length > CHIP_ROWS) {
+        const lastTop = tops[CHIP_ROWS - 1];
+        const row = chips.filter((chip) => chip.offsetTop === lastTop);
+        const first = chips.indexOf(row[0]);
+        // Drop chips from the end of the third row until the button fits after them.
+        let keep = row.length;
+        while (keep > 0 && row[keep - 1].offsetLeft + row[keep - 1].offsetWidth + CHIP_GAP + MORE_WIDTH > element.clientWidth) keep--;
+        const before = keep > 0 ? row[keep - 1] : null;
+        next = {
+          height: Math.max(...row.map((chip) => chip.offsetTop + chip.offsetHeight)) + 2,
+          hideFrom: first + keep,
+          left: before ? before.offsetLeft + before.offsetWidth + CHIP_GAP : row[0].offsetLeft,
+          top: lastTop,
+        };
+      }
+      setFold((current) => (JSON.stringify(current) === JSON.stringify(next) ? current : next));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [children.length]);
+
+  // A choice already made past the fold stays in view.
+  const folded = fold && !expanded && selected < fold.hideFrom ? fold : null;
+
+  return (
+    <div
+      ref={box}
+      className="relative -m-0.5 mt-1.5 flex flex-wrap gap-2 overflow-hidden p-0.5"
+      style={folded ? { maxHeight: folded.height } : undefined}
+    >
+      {children.map((child, at) =>
+        folded && at >= folded.hideFrom ? (
+          <span key={at} className="contents [&>*]:invisible" aria-hidden="true" inert>
+            {child}
+          </span>
+        ) : (
+          child
+        ),
+      )}
+      {folded && (
+        <button
+          type="button"
+          data-more=""
+          className="chip absolute"
+          style={{ left: folded.left, top: folded.top, width: MORE_WIDTH }}
+          aria-label={`Show all ${children.length} ${label}`}
+          aria-expanded={false}
+          onClick={() => setExpanded(true)}
+        >
+          <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden="true">
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="19" cy="12" r="2" />
+          </svg>
         </button>
-      </section>
+      )}
+    </div>
+  );
+}
+
+function VariantPicker({
+  option,
+  choice,
+  onPick,
+}: {
+  option: KidOption;
+  choice: Record<string, string>;
+  onPick: (group: string, value: string) => void;
+}) {
+  return option.variants.map((group) => (
+    <fieldset key={group.name} className="mt-4">
+      <legend className="text-lg font-semibold">Pick your {group.name.toLowerCase()}</legend>
+      <ChipRows label={`${group.name.toLowerCase()} choices`} selected={group.values.indexOf(choice[group.name])}>
+        {group.values.map((value) => (
+          <button
+            key={value}
+            type="button"
+            className={`chip gap-2 ${group.images?.[value] ? "py-1 pl-1" : ""} ${choice[group.name] === value ? "ring-2 ring-action" : ""}`}
+            aria-pressed={choice[group.name] === value}
+            onClick={() => onPick(group.name, value)}
+          >
+            {group.images?.[value] && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={group.images[value]}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="size-8 rounded-full bg-white object-cover"
+              />
+            )}
+            {value}
+          </button>
+        ))}
+      </ChipRows>
+    </fieldset>
+  ));
+}
+
+/** The gifts in one row that runs off the screen's edges, with arrows for a mouse. */
+function GiftRow({ children }: { children: ReactNode }) {
+  const row = useRef<HTMLUListElement>(null);
+  const [ends, setEnds] = useState({ back: false, next: false });
+
+  function update() {
+    const element = row.current;
+    if (!element) return;
+    const { scrollLeft, scrollWidth, clientWidth } = element;
+    setEnds({ back: scrollLeft > 4, next: scrollLeft + clientWidth < scrollWidth - 4 });
+  }
+
+  useEffect(() => {
+    const element = row.current;
+    if (!element) return;
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  function move(way: 1 | -1) {
+    const element = row.current;
+    element?.scrollBy({ left: way * element.clientWidth * 0.7, behavior: "smooth" });
+  }
+
+  return (
+    <div className="relative mt-5">
+      <Arrows
+        label="gift"
+        canBack={ends.back}
+        canNext={ends.next}
+        onBack={() => move(-1)}
+        onNext={() => move(1)}
+      />
+      <ul
+        ref={row}
+        onScroll={update}
+        className="no-scrollbar -mx-6 flex snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 pb-2 pt-1"
+      >
+        {children}
+      </ul>
     </div>
   );
 }
@@ -370,11 +572,25 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
     "wrapped",
   );
   const [intro, setIntro] = useState(options.length > 1);
+  // The first tag turns over to show how it works, then back when the child is ready.
+  const [flipped, setFlipped] = useState(false);
+  const start = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!intro) return;
+    const timer = setTimeout(() => setFlipped(true), 700);
+    return () => clearTimeout(timer);
+  }, [intro]);
+
+  useEffect(() => {
+    if (flipped) start.current?.focus({ preventScroll: true });
+  }, [flipped]);
   const [halves, setHalves] = useState<Half[]>([]);
   const [remaining, setRemaining] = useState(options);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState(options.length === 1 ? options[0].id : "");
-  const [choice, setChoice] = useState<Record<string, string>>({});
+  // Colors and styles picked so far, by gift.
+  const [choices, setChoices] = useState<Record<string, Record<string, string>>>({});
   const [done, setDone] = useState(chosen);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -383,10 +599,22 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
 
   const selectedOption = remaining.find(({ id }) => id === selected);
 
+  const choice = choices[selected] ?? {};
+
+  function pick(optionId: string, group: string, value: string) {
+    setChoices((current) => ({ ...current, [optionId]: { ...current[optionId], [group]: value } }));
+  }
+
   /** The photo of the color or style picked so far, or the main photo. */
   function pictureOf(option: KidOption) {
-    if (option.id !== selected) return option.imageUrl;
-    return option.variants.map((group) => group.images?.[choice[group.name]]).find(Boolean) ?? option.imageUrl;
+    const picked = choices[option.id] ?? {};
+    return option.variants.map((group) => group.images?.[picked[group.name]]).find(Boolean) ?? option.imageUrl;
+  }
+
+  /** A gift's photos, with the picked color's photo first. */
+  function photosFor(option: KidOption) {
+    const first = pictureOf(option);
+    return first === option.imageUrl ? option.images : [first, ...option.images.filter((url) => url !== first)];
   }
   const ready = !!selectedOption?.variants.every(({ name }) => choice[name]);
 
@@ -413,7 +641,6 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
 
   function select(id: string) {
     setSelected(id);
-    setChoice({});
   }
 
   async function send() {
@@ -453,29 +680,57 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
           <Wrapped
             option={option}
             recipientName={recipientName}
+            giverName={giverName}
             left={left}
-            onUnwrap={intro ? undefined : unwrap}
+            arriving={index > 0}
+            tagBack={
+              options.length > 1 ? (
+                <TagIntro count={options.length} start={start} label={intro ? "Get started" : "Got it"} />
+              ) : undefined
+            }
+            onFlip={
+              options.length > 1
+                ? () => {
+                    setFlipped((turned) => !turned);
+                    setIntro(false);
+                  }
+                : undefined
+            }
+            flipped={flipped}
+            holding={intro}
+            onUnwrap={intro || flipped ? undefined : unwrap}
           />
         ) : (
           <section className="fixed inset-0 flex flex-col bg-page">
             {stage === "opened" && <Confetti key={option.id} />}
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-20">
-              <div className="mx-auto w-full max-w-md">
-                <div className={`mx-auto w-full max-w-72 ${stage === "storing" ? "to-basket" : ""}`}>
-                  <Photos images={option.images} className="aspect-square bg-white" />
-                </div>
-                <h1 className="mt-4 text-2xl font-semibold">{option.title}</h1>
+            <div className="min-h-0 flex-1 overflow-y-auto pb-4">
+              <div className={stage === "storing" ? "to-basket" : ""}>
+                {/* A new color starts the gallery over on its photo. */}
+                <Gallery
+                  key={pictureOf(option)}
+                  images={photosFor(option)}
+                  height="h-[50dvh] min-h-64 max-h-[34rem]"
+                />
+              </div>
+              <div className={`mx-auto w-full max-w-md px-6 ${stage === "storing" ? "float-out" : ""}`}>
+                <h1 className="mt-5 text-2xl font-semibold">{option.title}</h1>
                 {(option.ageLabel || option.size) && (
                   <ul className="mt-2 flex flex-wrap gap-2">
                     {option.ageLabel && <li className="chip">{option.ageLabel}</li>}
                     {option.size && <li className="chip">Size {option.size}</li>}
                   </ul>
                 )}
-                {option.summary && <p className="mt-2 font-medium">Comes in {option.summary}</p>}
+                <VariantPicker
+                  option={option}
+                  choice={choices[option.id] ?? {}}
+                  onPick={(group, value) => pick(option.id, group, value)}
+                />
+                {/* The picker above already shows the choices. */}
+                {option.summary && option.variants.length === 0 && <p className="mt-2 font-medium">Comes in {option.summary}</p>}
                 {option.description && <MoreText text={option.description} className="mt-2 text-soft" />}
               </div>
             </div>
-            <div className="mx-auto w-full max-w-md px-6 pb-6 pt-2">
+            <div className={`mx-auto w-full max-w-md px-6 pb-6 pt-2 ${stage === "storing" ? "float-out" : ""}`}>
               <button
                 type="button"
                 className="button w-full text-lg"
@@ -507,38 +762,35 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
                 }
               >
                 <div className="fixed inset-0" style={{ clipPath: half.clip }}>
-                  <Wrapped option={option} recipientName={recipientName} left={left} />
+                  <Wrapped option={option} recipientName={recipientName} giverName={giverName} left={left} />
                 </div>
               </div>
             ))}
           </div>
         )}
         <Basket count={index} />
-        {intro && (
-          <Intro count={options.length} recipientName={recipientName} onStart={() => setIntro(false)} />
-        )}
       </>
     );
   }
 
   return (
     <section className="reveal-in w-full max-w-xl">
+      <h1 className="text-center text-3xl font-semibold">
+        {options.length === 1 ? "It's all yours!" : "Pick 1 to keep!"}
+      </h1>
       {note && (
-        <div className="-rotate-1 rounded-2xl border border-line bg-paper p-5 shadow-md">
+        <div className="mt-5 -rotate-1 rounded-2xl border border-line bg-paper p-5 shadow-md">
           <p className="text-sm text-soft">A note from {giverName}</p>
           <p className="mt-1 font-hand text-3xl leading-snug wrap-anywhere">{note}</p>
         </div>
       )}
-      <h1 className="mt-6 text-center text-3xl font-semibold">
-        {options.length === 1 ? "It's all yours!" : "Pick 1 to keep!"}
-      </h1>
       {remaining.length === 0 ? (
         <p className="mt-4 text-center text-soft">
           These all sold out. Ask {giverName} to pick something new.
         </p>
       ) : (
-        // One row that runs off the screen's edges, so the choices sit right under it.
-        <ul className="no-scrollbar -mx-6 mt-5 flex snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 pb-2 pt-1">
+        // One row, so the choices sit right under it.
+        <GiftRow>
           {remaining.map((option) => (
             <li key={option.id} className="w-[62%] max-w-60 shrink-0 snap-start">
               <button
@@ -556,35 +808,15 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
               </button>
             </li>
           ))}
-        </ul>
+        </GiftRow>
       )}
-      {selectedOption?.variants.map((group) => (
-        <fieldset key={group.name} className="mt-4">
-          <legend className="text-lg font-semibold">Pick your {group.name.toLowerCase()}</legend>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {group.values.map((value) => (
-              <button
-                key={value}
-                type="button"
-                className={`chip inline-flex items-center gap-2 ${group.images?.[value] ? "py-1 pl-1" : ""} ${choice[group.name] === value ? "ring-2 ring-action" : ""}`}
-                aria-pressed={choice[group.name] === value}
-                onClick={() => setChoice((current) => ({ ...current, [group.name]: value }))}
-              >
-                {group.images?.[value] && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={group.images[value]}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className="size-8 rounded-full bg-white object-cover"
-                  />
-                )}
-                {value}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      ))}
+      {selectedOption && (
+        <VariantPicker
+          option={selectedOption}
+          choice={choice}
+          onPick={(group, value) => pick(selectedOption.id, group, value)}
+        />
+      )}
       {error && (
         <p role="alert" className="mt-3 text-center text-alert">
           {error}
@@ -597,7 +829,7 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
           disabled={!ready || busy}
           onClick={send}
         >
-          {busy ? "Sending..." : "This one!"}
+          {busy ? "Sending..." : "Confirm selection"}
         </button>
       )}
     </section>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ShownOption, VariantChoice } from "@/lib/chat";
 import { formatDollars, isSizeGroup, matchSize, photosOf, variantSummary } from "@/lib/gifts-format";
 import { MoreText } from "../../../more-text";
-import { Photos } from "../../../photos";
+import { Gallery } from "../../../gallery";
 
 type Props = {
   option: ShownOption;
@@ -47,7 +47,7 @@ export function ProductSheet({ option, recipientName, size, added, onAdd, onRemo
       <div className="relative flex flex-col gap-3 px-4 pt-4">
         <button
           type="button"
-          className="icon-button absolute right-3 top-3 bg-mist"
+          className="icon-button absolute right-3 top-3 z-20 bg-mist"
           aria-label="Close"
           onClick={() => dialog.current?.close()}
         >
@@ -55,7 +55,9 @@ export function ProductSheet({ option, recipientName, size, added, onAdd, onRemo
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <Photos images={photosOf(option)} className="h-[36dvh] bg-white" />
+        <div className="-mx-4 -mt-4">
+          <Gallery images={photosOf(option)} height="h-[40dvh]" />
+        </div>
         <div className="flex justify-between gap-3">
           <h2 className="text-xl font-semibold">{option.title}</h2>
           <span className="text-lg font-bold tabular-nums">{formatDollars(option.price_cents)}</span>
