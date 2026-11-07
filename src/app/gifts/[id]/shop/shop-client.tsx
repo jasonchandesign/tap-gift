@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ChatMessage, ShownOption, VariantChoice } from "@/lib/chat";
@@ -40,6 +41,14 @@ function CartIcon() {
   );
 }
 
+function RestartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4" />
+    </svg>
+  );
+}
+
 function Bubble({ from, children }: { from: "ai" | "you"; children: React.ReactNode }) {
   return from === "ai" ? (
     <p className="max-w-[85%] self-start rounded-2xl rounded-bl-md bg-mist px-3.5 py-2.5">{children}</p>
@@ -64,11 +73,19 @@ export function ShopClient(props: Props) {
   const [text, setText] = useState("");
   const [asked, setAsked] = useState("");
   const [error, setError] = useState("");
+  const [cartHint, setCartHint] = useState(false);
+  const hinted = useRef(props.initialCart.length > 0);
   const end = useRef<HTMLDivElement>(null);
 
   const busy = !!asked;
   const lastReply = messages.findLast((message) => message.role === "assistant");
   const suggestions = lastReply ? lastReply.suggestions_json : audience.starters;
+
+  useEffect(() => {
+    if (!cartHint) return;
+    const timer = setTimeout(() => setCartHint(false), 5000);
+    return () => clearTimeout(timer);
+  }, [cartHint]);
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
@@ -140,6 +157,10 @@ export function ShopClient(props: Props) {
     setCart((current) => [...current, item]);
     if (!(await savePick(option.id, choice))) {
       setCart((current) => current.filter(({ id }) => id !== option.id));
+    } else if (!hinted.current) {
+      // The first gift added shows where the cart is.
+      hinted.current = true;
+      setCartHint(true);
     }
   }
 
@@ -167,7 +188,7 @@ export function ShopClient(props: Props) {
     const shown = options.filter((option) => option.turn === turn);
     if (!shown.length) return null;
     return (
-      <ul className="-mx-4 flex shrink-0 snap-x gap-2.5 overflow-x-auto px-4 pb-1">
+      <ul className="-mx-4 flex shrink-0 snap-x scroll-px-4 gap-2.5 overflow-x-auto px-4 pb-1">
         {shown.map((option) => {
           const added = !!inCart(option);
           return (
@@ -217,13 +238,24 @@ export function ShopClient(props: Props) {
 
   return (
     <>
-      <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2">
-        <h1 className="min-w-0 truncate text-xl font-semibold">Gifts for {recipientName}</h1>
+      <header className="relative flex items-center gap-1 border-b border-line px-4 py-2">
+        <h1 className="mr-auto min-w-0 truncate text-xl font-semibold">Gifts for {recipientName}</h1>
+        <Link
+          href={`/new?gift=${giftId}`}
+          className="icon-button text-action"
+          aria-label="Restart: change the name, age or wrap"
+          title="Change the name, age or wrap"
+        >
+          <RestartIcon />
+        </Link>
         <button
           type="button"
           className="icon-button relative text-action"
           aria-label={`Cart, ${cart.length} ${cart.length === 1 ? "gift" : "gifts"}`}
-          onClick={() => window.history.pushState(null, "", "?cart")}
+          onClick={() => {
+            setCartHint(false);
+            window.history.pushState(null, "", "?cart");
+          }}
         >
           <CartIcon />
           {cart.length > 0 && (
@@ -235,6 +267,17 @@ export function ShopClient(props: Props) {
             </span>
           )}
         </button>
+        {cartHint && (
+          <button
+            type="button"
+            role="status"
+            className="reveal-in absolute right-2 top-full z-20 mt-2 w-60 rounded-2xl bg-ink px-3.5 py-2.5 text-left text-sm font-medium text-white shadow-lg"
+            onClick={() => setCartHint(false)}
+          >
+            <span className="absolute -top-1.5 right-6 size-3 rotate-45 bg-ink" aria-hidden="true" />
+            Your gifts are saved. Tap the cart when you&apos;re ready to check out.
+          </button>
+        )}
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-hidden px-4 py-4">

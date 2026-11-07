@@ -20,6 +20,14 @@ type Props = {
 
 type Step = "message" | "address" | "review";
 
+const FIELD_LABEL = "flex min-w-0 flex-col gap-1 text-sm font-semibold text-soft";
+
+const PENCIL_ICON = (
+  <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4" />
+  </svg>
+);
+
 const BACK_ICON = (
   <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M15 5l-7 7 7 7" />
@@ -43,16 +51,18 @@ function Heading({ title, onBack, href }: { title: string; onBack?: () => void; 
   );
 }
 
-function Summary({ label, onEdit, children }: { label: string; onEdit: () => void; children: React.ReactNode }) {
+type SummaryProps = { label: string; editLabel: string; onEdit: () => void; children: React.ReactNode };
+
+function Summary({ label, editLabel, onEdit, children }: SummaryProps) {
   return (
-    <section className="border-b border-line py-3">
-      <div className="flex items-center justify-between">
-        <h2 className="font-sans text-sm font-bold tracking-normal text-soft">{label}</h2>
-        <button type="button" className="text-sm font-semibold text-action" onClick={onEdit}>
-          Edit
-        </button>
+    <section className="flex items-start gap-3 border-b border-line py-3">
+      <div className="min-w-0 flex-1">
+        <h2 className="font-sans text-base font-bold tracking-normal text-soft">{label}</h2>
+        <div className="mt-1 wrap-anywhere">{children}</div>
       </div>
-      <div className="mt-1 wrap-anywhere">{children}</div>
+      <button type="button" className="icon-button -mr-2 -mt-1.5 text-action" aria-label={editLabel} onClick={onEdit}>
+        {PENCIL_ICON}
+      </button>
     </section>
   );
 }
@@ -82,7 +92,7 @@ export function ConfirmForm(props: Props) {
     return {
       name: field,
       value: shipping[field],
-      className: "field",
+      className: "field font-normal text-ink",
       onChange: (event: { target: { value: string } }) =>
         setShipping((current) => ({ ...current, [field]: event.target.value })),
     };
@@ -154,13 +164,32 @@ export function ConfirmForm(props: Props) {
         <p className="text-sm text-soft">
           This is a demo with a sample address filled in. Nothing is really shipped.
         </p>
-        <input {...address("name")} aria-label="Full name" placeholder="Full name" required maxLength={100} />
-        <input {...address("line1")} aria-label="Street address" placeholder="Street address" required maxLength={120} />
-        <input {...address("line2")} aria-label="Apartment or unit" placeholder="Apartment or unit (optional)" maxLength={120} />
+        <label className={FIELD_LABEL}>
+          {recipientName}&apos;s full name
+          <input {...address("name")} autoComplete="name" required maxLength={100} />
+          <span className="font-normal">For the shipping label only. The gift tag still says {recipientName}.</span>
+        </label>
+        <label className={FIELD_LABEL}>
+          Street address
+          <input {...address("line1")} autoComplete="address-line1" required maxLength={120} />
+        </label>
+        <label className={FIELD_LABEL}>
+          Apartment or unit (optional)
+          <input {...address("line2")} autoComplete="address-line2" maxLength={120} />
+        </label>
         <div className="grid grid-cols-[1fr_5rem_7rem] gap-2">
-          <input {...address("city")} aria-label="City" placeholder="City" required maxLength={80} />
-          <input {...address("state")} aria-label="State" placeholder="State" required minLength={2} maxLength={2} />
-          <input {...address("zip")} aria-label="ZIP code" placeholder="ZIP" required pattern="\d{5}(-\d{4})?" />
+          <label className={FIELD_LABEL}>
+            City
+            <input {...address("city")} autoComplete="address-level2" required maxLength={80} />
+          </label>
+          <label className={FIELD_LABEL}>
+            State
+            <input {...address("state")} autoComplete="address-level1" required minLength={2} maxLength={2} />
+          </label>
+          <label className={FIELD_LABEL}>
+            ZIP
+            <input {...address("zip")} autoComplete="postal-code" required pattern="\d{5}(-\d{4})?" />
+          </label>
         </div>
         <button type="submit" className="button mt-1">
           Continue
@@ -184,19 +213,25 @@ export function ConfirmForm(props: Props) {
               className="size-14 shrink-0 rounded-lg border border-line bg-white object-contain"
             />
             <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 font-semibold leading-snug">{pick.title}</p>
+              <p className="line-clamp-2 font-bold leading-snug">{pick.title}</p>
+              <p className="text-sm tabular-nums text-soft">{pick.price}</p>
               {pick.details && <p className="text-sm text-soft">{pick.details}</p>}
             </div>
-            <span className="tabular-nums">{pick.price}</span>
           </li>
         ))}
       </ul>
-      <Summary label={`From ${giverName}`} onEdit={() => setStep("message")}>
+      <Summary label={`From ${giverName}`} editLabel="Edit your message" onEdit={() => setStep("message")}>
         {note}
       </Summary>
-      <Summary label="Ship to" onEdit={() => setStep("address")}>
-        {shipping.name}, {shipping.line1}
-        {shipping.line2 && `, ${shipping.line2}`}, {shipping.city}, {shipping.state} {shipping.zip}
+      <Summary label="Ship to" editLabel="Edit the address" onEdit={() => setStep("address")}>
+        <p>{shipping.name}</p>
+        <p>
+          {shipping.line1}
+          {shipping.line2 && `, ${shipping.line2}`}
+        </p>
+        <p>
+          {shipping.city}, {shipping.state} {shipping.zip}
+        </p>
       </Summary>
       <div className="mt-4 flex justify-between text-xl font-bold">
         <span>Total</span>
@@ -204,8 +239,7 @@ export function ConfirmForm(props: Props) {
       </div>
       {pricesDiffer && (
         <p className="mt-1 text-sm text-soft">
-          That&apos;s the priciest gift. If {recipientName} picks a cheaper one, you get the difference
-          back.
+          Pay {total} today. The balance will be refunded after {recipientName} chooses a gift.
         </p>
       )}
       {error && (

@@ -193,3 +193,14 @@ export async function attachCard(cardId: string, giftId: string) {
   await query("UPDATE gifts SET delivery = 'card' WHERE id = $1", [giftId]);
   return true;
 }
+
+/** The gifter went back to change who it's for. The chat and cart stay. */
+export async function updateGiftDetails(id: string, details: Omit<NewGift, "rules" | "cardId">) {
+  const { query } = await db();
+  const { rows } = await query(
+    `UPDATE gifts SET recipient_name = $2, recipient_age = $3, skin = $4, audience = $5
+     WHERE id = $1 AND status = 'draft' RETURNING id`,
+    [id, details.recipientName, details.recipientAge, details.skin, details.audience],
+  );
+  return rows.length > 0;
+}

@@ -19,12 +19,26 @@ function swatch(id: SkinId) {
   return `linear-gradient(90deg, ${wrap} 0 44%, ${ribbon} 44% 56%, ${wrap} 56% 100%)`;
 }
 
-export function NewGiftForm({ cardId }: { cardId?: string }) {
+type Editing = {
+  id: string;
+  recipientName: string;
+  recipientAge: number;
+  skin: string;
+  audience: string;
+};
+
+type Props = { cardId?: string; editing?: Editing };
+
+export function NewGiftForm({ cardId, editing }: Props) {
   const router = useRouter();
-  const [recipientName, setRecipientName] = useState("Mia");
-  const [recipientAge, setRecipientAge] = useState("9");
-  const [audience, setAudience] = useState<Audience>(AUDIENCES[2]);
-  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
+  const [recipientName, setRecipientName] = useState(editing?.recipientName ?? "Mia");
+  const [recipientAge, setRecipientAge] = useState(String(editing?.recipientAge ?? 9));
+  const [audience, setAudience] = useState<Audience>(
+    AUDIENCES.find(({ id }) => id === editing?.audience) ?? AUDIENCES[2],
+  );
+  const [skin, setSkin] = useState<SkinId>(
+    SKIN_IDS.find((id) => id === editing?.skin) ?? DEFAULT_SKIN,
+  );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -39,20 +53,16 @@ export function NewGiftForm({ cardId }: { cardId?: string }) {
     setError("");
 
     try {
-      const response = await fetch("/api/gifts", {
-        method: "POST",
+      const details = { recipientName, recipientAge: Number(recipientAge), skin, audience: audience.id };
+      const response = await fetch(editing ? `/api/gifts/${editing.id}` : "/api/gifts", {
+        method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipientName,
-          recipientAge: Number(recipientAge),
-          skin,
-          audience: audience.id,
-          cardId,
-        }),
+        body: JSON.stringify(editing ? details : { ...details, cardId }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      router.push(`/gifts/${data.id}/shop`);
+      if (editing) router.replace(`/gifts/${data.id}/shop`);
+      else router.push(`/gifts/${data.id}/shop`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
       setBusy(false);
@@ -62,12 +72,7 @@ export function NewGiftForm({ cardId }: { cardId?: string }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3.5">
       {cardId && <Logo className="mb-1 text-xl" />}
-      {cardId && (
-        <p className="self-start rounded-full bg-mist px-3 py-1.5 text-sm font-semibold text-action">
-          Your card is ready to fill
-        </p>
-      )}
-      <h1 className="text-3xl font-semibold">{cardId ? "Let's fill this card" : "Who is it for?"}</h1>
+      <h1 className="text-3xl font-semibold">{cardId && !editing ? "Let's fill this card" : "Who is it for?"}</h1>
       <div className="grid grid-cols-[1fr_5.5rem] gap-3">
         <label className="flex flex-col gap-1 text-sm font-semibold text-soft">
           Kid&apos;s first name

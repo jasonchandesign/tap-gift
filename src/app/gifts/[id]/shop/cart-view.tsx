@@ -52,15 +52,22 @@ export function CartView({ giftId, recipientName, cart, error, onRemove, onBack 
                     referrerPolicy="no-referrer"
                     className="size-18 shrink-0 rounded-xl border border-line bg-white object-contain"
                   />
-                  <div className="min-w-0 flex-1">
+                  <div className="mr-3 min-w-0 flex-1">
                     <h2 className="line-clamp-2 font-sans font-bold leading-snug tracking-normal">
                       {item.title}
                     </h2>
                     <p className="text-sm tabular-nums text-soft">{formatDollars(item.price_cents)}</p>
                     {details && <p className="text-sm text-soft">{details}</p>}
                   </div>
-                  <button type="button" className="chip" onClick={() => onRemove(item)}>
-                    Remove
+                  <button
+                    type="button"
+                    className="icon-button -mr-2 text-soft"
+                    aria-label={`Remove ${item.title}`}
+                    onClick={() => onRemove(item)}
+                  >
+                    <svg viewBox="0 0 24 24" className="size-5.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                    </svg>
                   </button>
                 </li>
               );
@@ -81,10 +88,7 @@ export function CartView({ giftId, recipientName, cart, error, onRemove, onBack 
             <span className="tabular-nums">{total}</span>
           </div>
           {cart.length > 1 && (
-            <p className="mt-1 text-sm text-soft">
-              That&apos;s the priciest gift. {recipientName} picks one, and any difference comes back
-              to you.
-            </p>
+            <p className="mt-1 text-sm text-soft">You only pay for what {recipientName} chooses.</p>
           )}
           <Link href={`/gifts/${giftId}/confirm`} className="button mt-3 w-full">
             Check out
