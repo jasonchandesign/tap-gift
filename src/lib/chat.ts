@@ -3,7 +3,7 @@ import { isSizeGroup } from "./gifts-format";
 import type { CheckedProduct, VariantGroup } from "./rules";
 import type { Motif } from "./wraps";
 
-export const MAX_TURNS = 12;
+export const MAX_TURNS = 20;
 export const MAX_PICKS = 5;
 
 export type ChatMessage = {

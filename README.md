@@ -30,6 +30,8 @@ Claude does two jobs, and the kid never talks to it.
 
 The AI makes the judgment calls, and code enforces the hard limits in `src/lib/rules.ts`: price, stock, new condition, US stores, blocked categories, things to avoid and size. Some limits follow the recipient's age: makeup and skincare open up at 13, and fragrance at 18. The prompt also shops for a child, a teenager or an adult based on the age. A dollar amount in the gifter's message becomes the limit in code, even if the model misses it. The model can only propose products that came back from a search in that turn.
 
+The tappable ideas in the chat are canned, not written by the AI. `src/lib/starters.ts` has a few per age group (kid, teen, adult) and for girl, boy or anyone. After a reply, the chat offers more like these, an idea the gifter hasn't tried and a lower price when some gifts cost more. Once the canned ideas run out, the AI suggests new interests, and code drops any that are long, mention money or name something off-limits at that age. The AI's prompt also lists what's off-limits at the recipient's age, so it can say so and suggest something close when a gifter asks. Each gift gets 20 AI turns, enough for most gifters, which caps anyone gaming it.
+
 ## Shopping eval
 
 `npm run eval` runs 30 scripted chats against a running app: 10 gifter prompts with 3 refinements each (a price limit, something to avoid and a clothing size). Three of the prompts ask for things the rules block: a knife or BB gun, makeup and perfume, and a gift card. The script checks every option against the limits stated in the chat, not the limits the app saved.

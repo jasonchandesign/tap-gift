@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { allOptions, listMessages, MAX_TURNS, selectedOptions } from "@/lib/chat";
 import { getGift } from "@/lib/gifts";
+import { starterIdeas } from "@/lib/starters";
 import { ShopClient } from "./shop-client";
 
 type Props = PageProps<"/gifts/[id]/shop">;
@@ -25,6 +26,7 @@ async function Shop({ params }: Props) {
       giftId={gift.id}
       recipientName={gift.recipient_name}
       audienceId={gift.audience}
+      starters={starterIdeas(gift)}
       initialSize={gift.rules_json.size}
       initialMessages={messages}
       initialOptions={options}

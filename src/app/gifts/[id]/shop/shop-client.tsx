@@ -16,6 +16,7 @@ type Props = {
   giftId: string;
   recipientName: string;
   audienceId: string;
+  starters: string[];
   initialSize?: string;
   initialMessages: ChatMessage[];
   initialOptions: ShownOption[];
@@ -79,7 +80,7 @@ export function ShopClient(props: Props) {
 
   const busy = !!asked;
   const lastReply = messages.findLast((message) => message.role === "assistant");
-  const suggestions = lastReply ? lastReply.suggestions_json : audience.starters;
+  const suggestions = lastReply ? lastReply.suggestions_json : props.starters;
 
   useEffect(() => {
     if (!cartHint) return;

@@ -96,7 +96,6 @@ export const AUDIENCES = [
     skin: "ribbon",
     phrase: "a girl",
     likes: "she likes",
-    starters: ["She's creative and loves art", "She loves unicorns", "She's into soccer and science"],
   },
   {
     id: "boy",
@@ -104,11 +103,6 @@ export const AUDIENCES = [
     skin: "sky",
     phrase: "a boy",
     likes: "he likes",
-    starters: [
-      "He loves soccer and his favorite player is Messi",
-      "He likes to build cars",
-      "He's into dinosaurs and space",
-    ],
   },
   {
     id: "any",
@@ -116,7 +110,6 @@ export const AUDIENCES = [
     skin: "kraft",
     phrase: "anyone",
     likes: "they like",
-    starters: ["They're creative and love art", "They love animals", "They like to build things"],
   },
 ] as const satisfies {
   id: string;
@@ -124,7 +117,6 @@ export const AUDIENCES = [
   skin: SkinId;
   phrase: string;
   likes: string;
-  starters: string[];
 }[];
 
 export type Audience = (typeof AUDIENCES)[number];

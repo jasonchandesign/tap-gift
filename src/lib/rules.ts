@@ -36,6 +36,20 @@ const BLOCKED: { name: string; pattern: RegExp; allowedFrom?: number }[] = [
   { name: "anti-aging", pattern: /\banti-?aging\b/i, allowedFrom: 18 },
 ];
 
+function blockedAt(age: number) {
+  return BLOCKED.filter(({ allowedFrom }) => allowedFrom === undefined || age < allowedFrom);
+}
+
+/** What code removes from every search at this age, so the AI can say so when asked. */
+export function offLimits(age: number) {
+  return blockedAt(age).map(({ name }) => name);
+}
+
+/** Whether text names something off-limits at this age. */
+export function isOffLimits(text: string, age: number) {
+  return blockedAt(age).some(({ pattern }) => pattern.test(text));
+}
+
 const US_DOMAIN = /\.(com|us|net|org)$/i;
 
 export type RuleCheck = {
@@ -118,9 +132,7 @@ export function checkProduct(
 
   const category = categoryText(product);
   const text = `${product.title} ${category}`;
-  const blocked = BLOCKED.find(
-    ({ pattern, allowedFrom }) => (allowedFrom === undefined || age < allowedFrom) && pattern.test(text),
-  );
+  const blocked = blockedAt(age).find(({ pattern }) => pattern.test(text));
   const avoidMatch = avoid.find((term) => matchesTerm(text, term)) ?? null;
   const priceCents = toCents(offer);
   const images = product.images ?? [];
