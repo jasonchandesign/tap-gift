@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   AUDIENCES,
   DEFAULT_SKIN,
@@ -32,9 +32,9 @@ type Props = { cardId?: string; editing?: Editing };
 
 export function NewGiftForm({ cardId, editing }: Props) {
   const router = useRouter();
-  const [recipientName, setRecipientName] = useState(editing?.recipientName ?? "Mia");
+  const [recipientName, setRecipientName] = useState(editing?.recipientName ?? "");
   const [recipientLastName, setRecipientLastName] = useState(editing?.recipientLastName ?? "");
-  const [recipientAge, setRecipientAge] = useState(String(editing?.recipientAge ?? 9));
+  const [recipientAge, setRecipientAge] = useState(editing ? String(editing.recipientAge) : "");
   const [audience, setAudience] = useState<Audience>(
     AUDIENCES.find(({ id }) => id === editing?.audience) ?? AUDIENCES[2],
   );
@@ -43,6 +43,11 @@ export function NewGiftForm({ cardId, editing }: Props) {
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // Once this form has made a gift, going back and continuing again edits it rather than making another.
+  const [giftId, setGiftId] = useState(editing?.id);
+
+  // Next.js keeps this page alive in the background, so coming back would still show "One moment...".
+  useEffect(() => () => setBusy(false), []);
 
   function chooseAudience(next: Audience) {
     setAudience(next);
@@ -62,13 +67,14 @@ export function NewGiftForm({ cardId, editing }: Props) {
         skin,
         audience: audience.id,
       };
-      const response = await fetch(editing ? `/api/gifts/${editing.id}` : "/api/gifts", {
-        method: editing ? "PATCH" : "POST",
+      const response = await fetch(giftId ? `/api/gifts/${giftId}` : "/api/gifts", {
+        method: giftId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editing ? details : { ...details, cardId }),
+        body: JSON.stringify(giftId ? details : { ...details, cardId }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
+      setGiftId(data.id);
       if (editing) router.replace(`/gifts/${data.id}/shop`);
       else router.push(`/gifts/${data.id}/shop`);
     } catch (caught) {
