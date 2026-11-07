@@ -198,6 +198,15 @@ export async function attachCard(cardId: string, giftId: string) {
   return true;
 }
 
+/** Takes a chosen gift off its card, so the next tap starts a new gift. The order isn't touched. */
+export async function clearCard(cardId: string, giftId: string) {
+  const { query } = await db();
+  await query("UPDATE cards SET current_gift_id = NULL WHERE id = $1 AND current_gift_id = $2", [
+    cardId,
+    giftId,
+  ]);
+}
+
 /** The gifter went back to change who it's for. The chat and cart stay. */
 export async function updateGiftDetails(id: string, details: Omit<NewGift, "rules" | "cardId">) {
   const { query } = await db();

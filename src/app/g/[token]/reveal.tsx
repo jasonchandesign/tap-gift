@@ -8,6 +8,7 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { Confetti } from "../../confetti";
 import { Bow, GiftTag, TagString } from "../../gift-wrap";
 import { MoreText } from "../../more-text";
@@ -105,6 +106,68 @@ function GiftPicture({ option }: { option: { imageUrl: string } }) {
   );
 }
 
+/** Asks first, because clearing takes this gift off the card. */
+function ReuseCard({ token, cardId }: { token: string; cardId: string }) {
+  const router = useRouter();
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function clear() {
+    setBusy(true);
+    setError("");
+    const response = await fetch(`/api/g/${token}/clear-card`, { method: "POST" }).catch(() => null);
+    if (response?.ok) {
+      router.push(`/new?card=${cardId}`);
+      return;
+    }
+    setError("That didn't work. Please try again.");
+    setBusy(false);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className="mt-6 text-sm text-soft underline"
+        onClick={() => dialog.current?.showModal()}
+      >
+        Give another gift with this card
+      </button>
+      <dialog
+        ref={dialog}
+        aria-labelledby="reuse-title"
+        className="m-auto w-[calc(100%-3rem)] max-w-sm rounded-3xl bg-paper p-7 text-center text-ink backdrop:bg-black/50"
+        onClick={(event) => {
+          if (event.target === dialog.current) dialog.current.close();
+        }}
+      >
+        <h2 id="reuse-title" className="text-2xl font-semibold">
+          Clear this card?
+        </h2>
+        <p className="mt-3 text-soft">
+          Your order has already been placed. Clearing this card will not cancel the order.
+        </p>
+        {error && (
+          <p role="alert" className="mt-3 text-alert">
+            {error}
+          </p>
+        )}
+        <button type="button" className="button mt-6 w-full" disabled={busy} onClick={clear}>
+          {busy ? "Clearing..." : "Clear and start new gift"}
+        </button>
+        <button
+          type="button"
+          className="button-quiet mt-2 w-full"
+          onClick={() => dialog.current?.close()}
+        >
+          Keep the order on this card
+        </button>
+      </dialog>
+    </>
+  );
+}
+
 function Done({
   token,
   giverName,
@@ -130,7 +193,7 @@ function Done({
   return (
     <section className="reveal-in w-full max-w-md rounded-3xl border border-line bg-paper p-8 text-center">
       {!chosen.thankYou && <Confetti />}
-      <h1 className="text-4xl font-semibold">It&apos;s on its way!</h1>
+      <h1 className="text-4xl font-semibold">Your order has been confirmed</h1>
       <div className="mx-auto mt-5 w-56">
         <GiftPicture option={chosen} />
       </div>
@@ -158,11 +221,7 @@ function Done({
           </button>
         </form>
       )}
-      {cardId && (
-        <a className="mt-6 block text-sm text-soft underline" href={`/new?card=${cardId}`}>
-          Give another gift with this card
-        </a>
-      )}
+      {cardId && <ReuseCard token={token} cardId={cardId} />}
     </section>
   );
 }
