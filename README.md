@@ -28,7 +28,7 @@ Claude does two jobs, and the kid never talks to it.
 - **Shopping chat (Claude Haiku 5.5):** a tool-using agent that saves the gifter's rules, searches real products through Channel3, and proposes 3 to 5 gifts with a reason for each. See `src/lib/shopper.ts`.
 - **Wrapping paper (Claude Sonnet 5.5):** after payment, it draws two simple shapes per gift that hint at what's inside without showing it. See `src/lib/wraps.ts`.
 
-The AI makes the judgment calls, and code enforces the hard limits in `src/lib/rules.ts`: price, stock, new condition, US stores, blocked categories, things to avoid and size. A dollar amount in the gifter's message becomes the limit in code, even if the model misses it. The model can only propose products that came back from a search in that turn.
+The AI makes the judgment calls, and code enforces the hard limits in `src/lib/rules.ts`: price, stock, new condition, US stores, blocked categories, things to avoid and size. Some limits follow the recipient's age: makeup and skincare open up at 13, and fragrance at 18. The prompt also shops for a child, a teenager or an adult based on the age. A dollar amount in the gifter's message becomes the limit in code, even if the model misses it. The model can only propose products that came back from a search in that turn.
 
 ## Shopping eval
 

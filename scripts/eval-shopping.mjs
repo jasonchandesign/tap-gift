@@ -37,7 +37,12 @@ const REFINEMENTS = [
 ];
 
 const BLOCKED =
-  /\b(gift ?cards?|e-?gift|gift certificates?|guns?|shotguns?|rifles?|pistols?|airsoft|pellet|ammo|knife|knives|daggers?|swords?|machetes?|crossbows?|tasers?|pepper spray|firearms?|lingerie|erotic|tobacco|cigars?|vapes?|cbd|alcohol|whiskey|vodka|wine|beer|casino|supplements?|vitamins?|melatonin|protein powder|cosmetics?|makeup|make-up|lipsticks?|lip gloss|mascara|eyeliner|eyeshadow|perfumes?|parfums?|eau de|edt|edp|colognes?|fragrances?|body sprays?|body mists?|bath (?:and|&) body works|nail polish|skin ?care)\b/i;
+  /\b(gift ?cards?|e-?gift|gift certificates?|guns?|shotguns?|rifles?|pistols?|airsoft|pellet|ammo|knife|knives|daggers?|swords?|machetes?|crossbows?|tasers?|pepper spray|firearms?|lingerie|erotic|tobacco|cigars?|vapes?|cbd|alcohol|whiskey|vodka|wine|beer|casino|supplements?|vitamins?|melatonin|protein powder)\b/i;
+// Makeup and skincare open up at 13, fragrance at 18, the same as the app.
+const BLOCKED_UNDER = [
+  [13, /\b(cosmetics?|makeup|make-up|lipsticks?|lip gloss|mascara|eyeliner|eyeshadow|nail polish|skin ?care)\b/i],
+  [18, /\b(perfumes?|parfums?|eau de|edt|edp|colognes?|fragrances?|body sprays?|body mists?|bath (?:and|&) body works)\b/i],
+];
 const MONEY_TALK = /\$\d|\b(prices?|priced|costs?|lower-cost|low-cost|budget|cheap|affordable|bargain|value|deal)\b/i;
 const US_DOMAIN = /\.(com|us|net|org)$/i;
 
@@ -49,11 +54,13 @@ function sizeIsOffered(option, size) {
 }
 
 /** Every broken hard rule for one option. Empty means it's clean. */
-function violations(option, { limitCents, avoid, size }) {
+function violations(option, { limitCents, avoid, size, age }) {
   const found = [];
   if (option.price_cents > limitCents) found.push(`over limit: ${option.price_cents} > ${limitCents}`);
   if (!(option.price_cents > 0)) found.push("no price");
-  if (BLOCKED.test(option.title)) found.push(`blocked term in title: ${option.title.match(BLOCKED)[0]}`);
+  for (const pattern of [BLOCKED, ...BLOCKED_UNDER.filter(([from]) => age < from).map(([, rule]) => rule)]) {
+    if (pattern.test(option.title)) found.push(`blocked term in title: ${option.title.match(pattern)[0]}`);
+  }
   if (avoid.some((term) => new RegExp(`\\b${term}`, "i").test(option.title))) found.push("avoid term in title");
   if (!US_DOMAIN.test(option.merchant)) found.push(`not a US store: ${option.merchant}`);
   if (!option.channel3_id) found.push("no product ID");
@@ -112,7 +119,7 @@ async function runSession(prompt, refinement) {
   if (!created.data.id) throw new Error(`Couldn't create a gift: ${created.status}`);
 
   const session = { prompt: prompt.text, refinement: refinement.id, giftId: created.data.id, turns: [] };
-  const rules = { limitCents: prompt.limit ?? NO_LIMIT_CENTS, avoid: [], size: undefined };
+  const rules = { limitCents: prompt.limit ?? NO_LIMIT_CENTS, avoid: [], size: undefined, age: prompt.age };
 
   const steps = [
     { text: prompt.text },

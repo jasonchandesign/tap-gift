@@ -30,7 +30,7 @@ export type ChooseResult = "chosen" | "taken" | "unavailable" | "variant" | "fai
 async function isStillAvailable(gift: Gift, option: ChosenOption) {
   try {
     const product = await getProduct(option.channel3_id);
-    return !!product && !!checkProduct(product, option.price_cents, gift.rules_json.avoid);
+    return !!product && !!checkProduct(product, option.price_cents, gift.rules_json.avoid, gift.recipient_age);
   } catch (error) {
     console.error("Availability check failed", error);
     return true;

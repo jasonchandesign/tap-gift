@@ -3,17 +3,38 @@ import { isSizeGroup, matchSize } from "./gifts-format";
 
 /** Hard limits live here, in code, so the model can't talk its way past them. */
 
-const BLOCKED: Record<string, RegExp> = {
-  "gift cards": /\b(gift ?cards?|e-?gift|gift certificates?|prepaid cards?)\b/i,
-  weapons:
-    /\b(guns?|shotguns?|rifles?|pistols?|airsoft|bb gun|pellet|ammo|ammunition|knife|knives|daggers?|swords?|machetes?|crossbows?|tasers?|stun gun|pepper spray|brass knuckles?|firearms?)\b/i,
-  "mature content":
-    /\b(adults? only|erotic|lingerie|sex|sexy|vibrators?|tobacco|cigars?|cigarettes?|vapes?|vaping|cbd|thc|cannabis|alcohol|whiskey|vodka|wine|beer|gambling|casino)\b/i,
-  supplements:
-    /\b(supplements?|vitamins?|protein powder|melatonin|probiotics?|multivitamins?|weight loss|creatine)\b/i,
-  cosmetics:
-    /\b(cosmetics?|makeup|make-up|lipsticks?|lip gloss|mascara|eyeliner|eyeshadow|foundation|perfumes?|parfums?|eau de|edt|edp|colognes?|fragrances?|body sprays?|body mists?|bath (?:and|&) body works|nail polish|skin ?care|anti-?aging)\b/i,
-};
+/** Blocked for everyone, unless allowedFrom sets the age it opens up at. */
+const BLOCKED: { name: string; pattern: RegExp; allowedFrom?: number }[] = [
+  { name: "gift cards", pattern: /\b(gift ?cards?|e-?gift|gift certificates?|prepaid cards?)\b/i },
+  {
+    name: "weapons",
+    pattern:
+      /\b(guns?|shotguns?|rifles?|pistols?|airsoft|bb gun|pellet|ammo|ammunition|knife|knives|daggers?|swords?|machetes?|crossbows?|tasers?|stun gun|pepper spray|brass knuckles?|firearms?)\b/i,
+  },
+  {
+    name: "mature content",
+    pattern:
+      /\b(adults? only|erotic|lingerie|sex|sexy|vibrators?|tobacco|cigars?|cigarettes?|vapes?|vaping|cbd|thc|cannabis|alcohol|whiskey|vodka|wine|beer|gambling|casino)\b/i,
+  },
+  {
+    name: "supplements",
+    pattern:
+      /\b(supplements?|vitamins?|protein powder|melatonin|probiotics?|multivitamins?|weight loss|creatine)\b/i,
+  },
+  {
+    name: "makeup and skincare",
+    pattern:
+      /\b(cosmetics?|makeup|make-up|lipsticks?|lip gloss|mascara|eyeliner|eyeshadow|foundation|nail polish|skin ?care)\b/i,
+    allowedFrom: 13,
+  },
+  {
+    name: "fragrance",
+    pattern:
+      /\b(perfumes?|parfums?|eau de|edt|edp|colognes?|fragrances?|body sprays?|body mists?|bath (?:and|&) body works)\b/i,
+    allowedFrom: 18,
+  },
+  { name: "anti-aging", pattern: /\banti-?aging\b/i, allowedFrom: 18 },
+];
 
 const US_DOMAIN = /\.(com|us|net|org)$/i;
 
@@ -87,6 +108,7 @@ export function checkProduct(
   product: Product,
   budgetCents: number,
   avoid: string[],
+  age: number,
   size?: string,
 ): CheckedProduct | null {
   const offer = (product.offers ?? [])
@@ -96,7 +118,9 @@ export function checkProduct(
 
   const category = categoryText(product);
   const text = `${product.title} ${category}`;
-  const blocked = Object.keys(BLOCKED).find((name) => BLOCKED[name].test(text)) ?? null;
+  const blocked = BLOCKED.find(
+    ({ pattern, allowedFrom }) => (allowedFrom === undefined || age < allowedFrom) && pattern.test(text),
+  );
   const avoidMatch = avoid.find((term) => matchesTerm(text, term)) ?? null;
   const priceCents = toCents(offer);
   const images = product.images ?? [];

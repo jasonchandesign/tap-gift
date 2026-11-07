@@ -6,7 +6,7 @@ import { AUDIENCE_IDS, SKIN_IDS } from "@/lib/skins";
 const Body = z.object({
   recipientName: z.string().trim().min(1).max(60),
   recipientLastName: z.string().trim().min(1).max(60),
-  recipientAge: z.number().int().min(1).max(17),
+  recipientAge: z.number().int().min(1).max(120),
   skin: z.enum(SKIN_IDS),
   audience: z.enum(AUDIENCE_IDS),
   cardId: z.string().optional(),

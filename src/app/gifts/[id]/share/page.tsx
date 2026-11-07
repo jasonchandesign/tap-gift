@@ -129,6 +129,7 @@ async function Share({ params }: Props) {
       {summary}
       <SendCard
         url={url}
+        recipientName={gift.recipient_name}
         message={`${gift.giver_name} sent ${gift.recipient_name} a gift! Open it here: ${url}`}
       />
       <CancelGift giftId={gift.id} recipientName={gift.recipient_name} paid={paid} />

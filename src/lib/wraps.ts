@@ -23,7 +23,7 @@ const Drawing = z.object({
   ),
 });
 
-const INSTRUCTIONS = `You design wrapping paper for a child's gifts. Each gift gets its own paper, and the paper is a clue to what's inside, never the answer.
+const INSTRUCTIONS = `You design wrapping paper for gifts. Each gift gets its own paper, and the paper is a clue to what's inside, never the answer.
 
 For each gift, draw 2 motifs that hint at it without showing it. A dinosaur playset gets footprints and ferns, not a dinosaur. A soccer ball gets a whistle and a pennant, not a ball. Make every gift's motifs clearly different from the others.
 

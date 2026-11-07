@@ -14,6 +14,9 @@ import {
 import { Bow, GiftTag } from "../gift-wrap";
 import { Logo } from "../logo";
 
+/** Girl and boy read oddly for a grown-up, so the labels follow the age. */
+const GROWN_UP = { girl: ["Woman", "a woman"], boy: ["Man", "a man"], any: ["Rather not say", "anyone"] };
+
 function swatch(id: SkinId) {
   const { wrap, ribbon } = SKINS[id];
   return `linear-gradient(90deg, ${wrap} 0 44%, ${ribbon} 44% 56%, ${wrap} 56% 100%)`;
@@ -53,6 +56,10 @@ export function NewGiftForm({ cardId, editing }: Props) {
     setAudience(next);
     setSkin(next.skin);
   }
+
+  const grownUp = Number(recipientAge) >= 18;
+  const label = (option: Audience) => (grownUp ? GROWN_UP[option.id][0] : option.label);
+  const phrase = grownUp ? GROWN_UP[audience.id][1] : audience.phrase;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -118,7 +125,7 @@ export function NewGiftForm({ cardId, editing }: Props) {
             value={recipientAge}
             onChange={(event) => setRecipientAge(event.target.value)}
             min={1}
-            max={17}
+            max={120}
             required
           />
         </label>
@@ -136,7 +143,7 @@ export function NewGiftForm({ cardId, editing }: Props) {
             className={`min-h-11 flex-auto whitespace-nowrap rounded-full px-3 text-sm font-semibold ${option.id === audience.id ? "bg-ink text-white" : ""}`}
             onClick={() => chooseAudience(option)}
           >
-            {option.label}
+            {label(option)}
           </button>
         ))}
       </div>
@@ -145,7 +152,7 @@ export function NewGiftForm({ cardId, editing }: Props) {
         <div className="wrap-paper flex h-60 flex-col items-center justify-between rounded-2xl pb-6 pt-3">
           <Bow className="relative w-32" />
           <div className="relative">
-            <GiftTag recipientName={recipientName || "Your kid"} small />
+            <GiftTag recipientName={recipientName || "Their name"} small />
           </div>
         </div>
       </div>
@@ -153,7 +160,7 @@ export function NewGiftForm({ cardId, editing }: Props) {
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-bold">What they&apos;ll see</span>
         <span className="text-sm text-soft">
-          {skin === audience.skin ? `Picked for ${audience.phrase}` : "Your pick"}
+          {skin === audience.skin ? `Picked for ${phrase}` : "Your pick"}
         </span>
       </div>
       <div className="flex gap-2">

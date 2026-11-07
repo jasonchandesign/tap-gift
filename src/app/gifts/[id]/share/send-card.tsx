@@ -2,13 +2,13 @@
 
 import { useState, useSyncExternalStore } from "react";
 
-type Props = { url: string; message: string };
+type Props = { url: string; message: string; recipientName: string };
 
 function noUpdates() {
   return () => undefined;
 }
 
-export function SendCard({ url, message }: Props) {
+export function SendCard({ url, message, recipientName }: Props) {
   const [copied, setCopied] = useState(false);
   // Desktop browsers can have a share sheet too, but it only earns a button on a phone.
   const canShare = useSyncExternalStore(
@@ -49,7 +49,7 @@ export function SendCard({ url, message }: Props) {
         </button>
       </div>
       <a className="mt-1 text-center text-sm text-soft underline" href={url}>
-        Open as the kid
+        Open as {recipientName}
       </a>
     </section>
   );
