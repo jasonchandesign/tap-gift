@@ -6,13 +6,13 @@ import { isSizeGroup, matchSize } from "./gifts-format";
 const BLOCKED: Record<string, RegExp> = {
   "gift cards": /\b(gift ?cards?|e-?gift|gift certificates?|prepaid cards?)\b/i,
   weapons:
-    /\b(guns?|rifles?|pistols?|airsoft|bb gun|pellet|ammo|ammunition|knife|knives|daggers?|swords?|machetes?|crossbows?|tasers?|stun gun|pepper spray|brass knuckles?|firearms?)\b/i,
+    /\b(guns?|shotguns?|rifles?|pistols?|airsoft|bb gun|pellet|ammo|ammunition|knife|knives|daggers?|swords?|machetes?|crossbows?|tasers?|stun gun|pepper spray|brass knuckles?|firearms?)\b/i,
   "mature content":
     /\b(adults? only|erotic|lingerie|sex|sexy|vibrators?|tobacco|cigars?|cigarettes?|vapes?|vaping|cbd|thc|cannabis|alcohol|whiskey|vodka|wine|beer|gambling|casino)\b/i,
   supplements:
     /\b(supplements?|vitamins?|protein powder|melatonin|probiotics?|multivitamins?|weight loss|creatine)\b/i,
   cosmetics:
-    /\b(cosmetics?|makeup|make-up|lipsticks?|lip gloss|mascara|eyeliner|eyeshadow|foundation|perfumes?|colognes?|fragrances?|nail polish|skin ?care|anti-?aging)\b/i,
+    /\b(cosmetics?|makeup|make-up|lipsticks?|lip gloss|mascara|eyeliner|eyeshadow|foundation|perfumes?|parfums?|eau de|edt|edp|colognes?|fragrances?|body sprays?|body mists?|bath (?:and|&) body works|nail polish|skin ?care|anti-?aging)\b/i,
 };
 
 const US_DOMAIN = /\.(com|us|net|org)$/i;
