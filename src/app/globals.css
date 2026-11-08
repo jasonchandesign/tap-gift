@@ -34,6 +34,8 @@
   --wrap-pattern-size: auto;
   --ribbon: #8fb8f5;
   --knot: #6e9ce6;
+  --unwrap: #ffffff;
+  --unwrap-ink: #0b2559;
 }
 
 body {
@@ -128,6 +130,17 @@ body {
 
   .button:hover {
     background: var(--action-dark);
+  }
+
+  /* On the wrapping paper, where a skin's usual button color can match the paper itself. */
+  .button.button-on-wrap {
+    background: var(--unwrap);
+    color: var(--unwrap-ink);
+  }
+
+  .button.button-on-wrap:hover {
+    background: var(--unwrap);
+    filter: brightness(0.94);
   }
 
   .button:disabled {

@@ -18,6 +18,12 @@ export type Skin = {
   line: string;
   action: string;
   actionDark: string;
+  /**
+   * The Unwrap button, which sits on the paper itself. Pick it to stand out from both the paper and
+   * the ribbon, since the usual button color can match the paper.
+   */
+  unwrap: string;
+  unwrapInk: string;
   accent: string;
 };
 
@@ -44,6 +50,8 @@ export const SKINS: Record<SkinId, Skin> = {
     line: "#f0cdcb",
     action: "#17453b",
     actionDark: "#0f332b",
+    unwrap: "#fffbf5",
+    unwrapInk: "#17453b",
     accent: "#a92b52",
   },
   sky: {
@@ -63,6 +71,8 @@ export const SKINS: Record<SkinId, Skin> = {
     line: "#cfdbee",
     action: "#1b2f5e",
     actionDark: "#12224a",
+    unwrap: "#fffbf5",
+    unwrapInk: "#1b2f5e",
     accent: "#a84b14",
   },
   kraft: {
@@ -81,6 +91,8 @@ export const SKINS: Record<SkinId, Skin> = {
     line: "#e2d2bc",
     action: "#3d2a1a",
     actionDark: "#2b1c10",
+    unwrap: "#3d2a1a",
+    unwrapInk: "#ffffff",
     accent: "#1f5f50",
   },
 };
@@ -150,6 +162,8 @@ export function skinStyle(id: string | undefined) {
     "--line": skin.line,
     "--action": skin.action,
     "--action-dark": skin.actionDark,
+    "--unwrap": skin.unwrap,
+    "--unwrap-ink": skin.unwrapInk,
     "--accent": skin.accent,
   } as CSSProperties;
 }

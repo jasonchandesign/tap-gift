@@ -324,13 +324,13 @@ function Wrapped({
       >
         <button
           type="button"
-          className="button w-full text-lg"
+          className="button button-on-wrap w-full text-lg"
           tabIndex={onUnwrap ? 0 : -1}
           onClick={() => onUnwrap?.()}
         >
           Unwrap Gift ({left} left)
         </button>
-        <p className="rounded-lg bg-action/80 px-3 py-0.5 text-sm font-semibold text-paper">
+        <p className="rounded-lg bg-black/35 px-3 py-0.5 text-sm font-semibold text-white">
           or swipe across the paper to rip it
         </p>
       </div>
