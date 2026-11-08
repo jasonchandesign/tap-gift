@@ -9,6 +9,8 @@ export type Point = { x: number; y: number };
 export type Half = {
   /** A CSS clip-path in screen pixels. */
   clip: string;
+  /** The same piece with a thin, uneven band past the torn edge, where the paper's white core shows. */
+  rim: string;
   dx: number;
   dy: number;
   rotate: number;
@@ -112,6 +114,27 @@ function around({ x, y }: Point, width: number, height: number) {
   return 3 + (height - y) / height;
 }
 
+function polygon(points: Point[]) {
+  return `polygon(${points.map(({ x, y }) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(", ")})`;
+}
+
+/**
+ * The torn line pushed out past the piece's edge by an uneven amount: mostly a few pixels that
+ * wander, with the odd fiber sticking further out, like the white inside of torn paper.
+ */
+function fray(line: Point[], outward: 1 | -1, width: number, height: number) {
+  let band = 3;
+  return line.map((point, index) => {
+    const before = line[Math.max(0, index - 1)];
+    const after = line[Math.min(line.length - 1, index + 1)];
+    const along = unit({ x: after.x - before.x, y: after.y - before.y });
+    band = Math.max(1.5, Math.min(6, band + (Math.random() - 0.5) * 2.5));
+    const fiber = Math.random() < 0.2 ? Math.random() * 5 : 0;
+    const push = (band + fiber) * outward;
+    return clamp({ x: point.x + along.y * push, y: point.y - along.x * push }, width, height);
+  });
+}
+
 /** One piece: the torn line, then back around the screen's edge one way or the other. */
 function piece(line: Point[], way: 1 | -1, width: number, height: number): Half {
   const from = around(line[line.length - 1], width, height);
@@ -130,6 +153,14 @@ function piece(line: Point[], way: 1 | -1, width: number, height: number): Half 
     .map(({ point }) => point);
   const shape = [...line, ...passed];
 
+  // Going round the piece clockwise on screen, its inside is to the right of the torn line, so the
+  // white band goes to the left; anticlockwise, the other way round.
+  const area = shape.reduce((sum, point, index) => {
+    const next = shape[(index + 1) % shape.length];
+    return sum + point.x * next.y - next.x * point.y;
+  }, 0);
+  const rim = [...fray(line, area > 0 ? 1 : -1, width, height), ...passed];
+
   // Fly away from the line, toward the middle of this piece.
   const middle = (points: Point[]) => ({
     x: points.reduce((sum, { x }) => sum + x, 0) / points.length,
@@ -144,7 +175,8 @@ function piece(line: Point[], way: 1 | -1, width: number, height: number): Half 
   const turn = Math.sign(lineAim.x * away.y - lineAim.y * away.x) || way;
 
   return {
-    clip: `polygon(${shape.map(({ x, y }) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(", ")})`,
+    clip: polygon(shape),
+    rim: polygon(rim),
     dx: away.x * throwPx,
     dy: away.y * throwPx,
     rotate: turn * (10 + Math.random() * 8),

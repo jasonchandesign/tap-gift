@@ -36,10 +36,14 @@ export function TagString({ className = "" }: { className?: string }) {
   );
 }
 
+/** Longer names get smaller, so most fit on one line and the longest wrap onto two. */
 function nameSize(name: string, small: boolean) {
-  if (name.length > 14) return small ? "text-xl" : "text-3xl";
-  if (name.length > 7) return small ? "text-3xl" : "text-5xl";
-  return small ? "text-4xl" : "text-7xl";
+  // The longest word decides, since a word can only break in the middle as a last resort.
+  const word = Math.max(...name.split(/\s+/).map((part) => part.length));
+  if (name.length > 16 || word > 11) return small ? "text-xl" : "text-3xl";
+  if (name.length > 10 || word > 8) return small ? "text-2xl" : "text-4xl";
+  // Short names stop at 48px, so they never swamp the tag.
+  return small ? "text-3xl" : "text-5xl";
 }
 
 const HOLE = <span className="absolute left-1/2 top-3.5 size-4 -translate-x-1/2 rounded-full bg-action" />;
@@ -56,7 +60,7 @@ export function GiftTag({ recipientName, giverName, small = false, back, flipped
       >
         <div className={`tag-turn ${flipped ? "flipped" : ""}`}>
           <div
-            className="tag-face flex flex-col rounded-2xl bg-paper px-5 pb-11 pt-10 text-center shadow-xl"
+            className="tag-face flex flex-col justify-center rounded-2xl bg-paper px-5 pb-8 pt-12 text-center shadow-xl"
             inert={flipped}
           >
             {HOLE}
@@ -65,14 +69,14 @@ export function GiftTag({ recipientName, giverName, small = false, back, flipped
             )}
             <p className="font-hand text-3xl leading-none text-soft">To:</p>
             <Name
-              className={`mt-1 font-display font-semibold leading-none tracking-tight wrap-anywhere text-ink ${nameSize(recipientName, false)}`}
+              className={`mt-1 font-display font-semibold leading-none tracking-tight text-balance wrap-anywhere text-ink ${nameSize(recipientName, false)}`}
             >
               {recipientName}
             </Name>
             {giverName && (
-              <p className="mt-auto pt-6 font-hand text-2xl leading-tight text-soft">
+              <p className="mt-5 font-hand text-2xl leading-tight text-soft">
                 From:
-                <span className="block wrap-anywhere text-ink">{giverName}</span>
+                <span className="block text-3xl wrap-anywhere text-ink">{giverName}</span>
               </p>
             )}
           </div>
@@ -92,7 +96,7 @@ export function GiftTag({ recipientName, giverName, small = false, back, flipped
     >
       <p className="font-hand text-2xl leading-none text-soft">To:</p>
       <Name
-        className={`mt-1 font-display font-semibold leading-none tracking-tight wrap-anywhere text-ink ${nameSize(recipientName, small)}`}
+        className={`mt-1 font-display font-semibold leading-none tracking-tight text-balance wrap-anywhere text-ink ${nameSize(recipientName, small)}`}
       >
         {recipientName}
       </Name>

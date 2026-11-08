@@ -297,12 +297,31 @@ body {
 
 .confetti span {
   position: absolute;
-  top: -1rem;
-  width: 0.55rem;
-  height: 0.9rem;
+  top: 0;
   border-radius: 2px;
-  opacity: 0;
-  animation: confetti-fall 1.5s var(--glide-in) forwards;
+  /* Held above the screen until its turn, already moving when it comes into view. */
+  animation: confetti-fall 2s cubic-bezier(0.3, 0.1, 0.6, 1) both;
+}
+
+.confetti-strip {
+  width: 0.3rem;
+  height: 1.3rem;
+}
+
+.confetti-chip {
+  width: 0.6rem;
+  height: 0.7rem;
+}
+
+.confetti .confetti-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.confetti-curl {
+  width: 0.6rem;
+  height: 1.4rem;
 }
 
 @keyframes tag-sway {
@@ -343,8 +362,9 @@ body {
 }
 
 @keyframes confetti-fall {
-  0% { opacity: 1; transform: translateY(0) rotate(0); }
-  100% { opacity: 0.9; transform: translateY(105vh) rotate(540deg); }
+  from { transform: translate(0, var(--start)) rotate(0) rotateX(0); }
+  /* Turning over on its other axis too makes flat pieces flutter as they fall. */
+  to { transform: translate(var(--drift), 110vh) rotate(var(--spin)) rotateX(calc(var(--spin) * 1.5)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

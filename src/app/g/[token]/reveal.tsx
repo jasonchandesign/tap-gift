@@ -761,6 +761,8 @@ export function Reveal({ token, giverName, recipientName, note, cardId, options,
                   } as CSSProperties
                 }
               >
+                {/* The white core of the paper, showing along the torn edge. */}
+                <div className="fixed inset-0 bg-[#fdfaf3]" style={{ clipPath: half.rim }} />
                 <div className="fixed inset-0" style={{ clipPath: half.clip }}>
                   <Wrapped option={option} recipientName={recipientName} giverName={giverName} left={left} />
                 </div>

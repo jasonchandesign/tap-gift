@@ -110,9 +110,9 @@ async function GiftBody({ gift }: { gift: GiftRecord }) {
         }
       />
       {!chosen && (
-        <aside className="fixed bottom-4 right-4 z-40 hidden w-44 rounded-xl bg-white p-2 text-center text-sm text-ink lg:block">
+        <aside className="fixed bottom-4 right-4 z-40 hidden w-26 rounded-lg bg-white p-1.5 text-center text-xs text-ink lg:block">
           <div dangerouslySetInnerHTML={{ __html: qr }} />
-          Continue on your phone
+          View on phone
         </aside>
       )}
     </div>
