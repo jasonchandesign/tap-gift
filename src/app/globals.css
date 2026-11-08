@@ -262,6 +262,11 @@ body {
   animation: rise-in 0.5s var(--glide-out) 0.55s backwards;
 }
 
+/* Waits a moment, so the page lands first and the notes read as something extra. */
+.demo-toast {
+  animation: toast-in 0.6s var(--glide-out) 1.2s backwards;
+}
+
 .typing {
   display: flex;
   gap: 0.3rem;
@@ -347,6 +352,10 @@ body {
   from { transform: translateY(100%); }
 }
 
+@keyframes toast-in {
+  from { transform: translateY(-100%); }
+}
+
 @keyframes rise-in {
   from { transform: translateY(1.5rem); opacity: 0; }
 }
@@ -369,7 +378,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .tag-turn { transition: none; }
-  .tag-sway, .reveal-in, .to-basket, .float-out, .slide-in-up, .rise-in, .typing span { animation: none; }
+  .tag-sway, .reveal-in, .to-basket, .float-out, .slide-in-up, .rise-in, .demo-toast, .typing span { animation: none; }
   .rip, .confetti { display: none; }
 }
 

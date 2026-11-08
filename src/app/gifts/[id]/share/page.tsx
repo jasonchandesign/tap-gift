@@ -3,8 +3,9 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { chosenGift, settleRefund } from "@/lib/checkout";
 import { selectedOptions } from "@/lib/chat";
-import { formatDollars, getGift, giftUrl, type Gift } from "@/lib/gifts";
+import { formatDollars, getGift, giftUrl, isDemoCard, type Gift } from "@/lib/gifts";
 import { skinStyle } from "@/lib/skins";
+import { DemoToast } from "../../../demo-toast";
 import { Bow, GiftTag } from "../../../gift-wrap";
 import { CancelGift } from "./cancel-gift";
 import { SendCard } from "./send-card";
@@ -118,6 +119,12 @@ async function Share({ params }: Props) {
         <p className="mt-3 text-lg">It&apos;s all set. They just tap it with a phone.</p>
         {summary}
         <CancelGift giftId={gift.id} recipientName={gift.recipient_name} paid={paid} />
+        {isDemoCard(gift.card_id) && (
+          <DemoToast action={`Tap the card as ${gift.recipient_name}`} href={`/c/${gift.card_id}`}>
+            Demo for an NFC card experience. When {gift.recipient_name} taps on a real card on the
+            phone, they&apos;ll be able to unwrap gifts.
+          </DemoToast>
+        )}
       </div>
     );
   }
@@ -142,6 +149,10 @@ async function Share({ params }: Props) {
         ].join("\n")}
       />
       <CancelGift giftId={gift.id} recipientName={gift.recipient_name} paid={paid} />
+      <DemoToast action={`Open it as ${gift.recipient_name}`} href={url}>
+        {gift.recipient_name} gets this link by text or email. Try to unwrap the gifts the way they
+        will.
+      </DemoToast>
     </div>
   );
 }

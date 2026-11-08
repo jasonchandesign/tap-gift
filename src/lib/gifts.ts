@@ -149,6 +149,14 @@ export type CardLookup =
   | { state: "blank" }
   | { state: "unknown" };
 
+/** Demo cards from `/c/demo` start with this. Real card IDs are fully random. */
+export const DEMO_CARD_PREFIX = "demo";
+
+/** A pretend card, so the gifter's page can offer the tap a real card would get. */
+export function isDemoCard(cardId: string | null) {
+  return !!cardId?.startsWith(DEMO_CARD_PREFIX);
+}
+
 /** Card links are random, so any well-formed ID is a card that may not be in the database yet. */
 function isCardId(cardId: string) {
   return /^[\w-]{16}$/.test(cardId);

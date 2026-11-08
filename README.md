@@ -6,14 +6,18 @@ Built for the PayPal AI Hackathon. Sandbox only.
 
 ## Try it
 
-Open https://tap-gift.onrender.com on your phone. A computer works too. No card is needed, and each person creates their own gift.
+There are two ways to send a gift, and each has its own starting link. Use a phone if you can. A computer works too. No physical card is needed, and each person creates their own gift.
+
+- **As a link:** https://tap-gift.onrender.com
+- **On a card:** https://tap-gift.onrender.com/c/demo gives you a pretend blank card, as if you had just tapped a real one.
 
 1. Tap **Start a gift**, enter a kid's name and age, and pick a wrap.
 2. Tell the chat what the kid loves. Try a refinement like "under $30" or "no screens".
 3. Add two or three gifts at different prices to the cart, then check out.
 4. Pay with a PayPal sandbox buyer login from the list below. No real money moves.
-5. Open the gift link on the last page. That's what the kid sees when they tap the card.
+5. On the last page, **Demo notes** slide down from the top. Its button opens the gift as the kid would get it: **Open it as Sam** for a link, or **Tap the card as Sam** for a card.
 6. Tear open each gift, review them and choose one. If it's cheaper than the priciest gift, the difference is refunded in the sandbox.
+7. Go back to the first tab to see the kid's choice, the refund and the thank-you note. With a card, the kid's last page also offers **Give another gift with this card**, which clears the card and starts its next gift.
 
 Sandbox buyer logins:
 
@@ -100,6 +104,20 @@ Run these from the repo root. Local scripts use PGlite, which only one process c
 | `npx tsx --env-file=.env scripts/reset-gift.mts <gift link>` | Undoes a kid's choice so a test gift can be opened again. A refund already sent stays recorded, so choosing again won't refund twice |
 | `npx tsx --env-file=.env scripts/redraw-wraps.mts <gift link>` | Draws a gift's wrapping paper again |
 | `npx tsx --env-file=.env scripts/preview-wraps.mts <gift link> <out.html>` | Writes an HTML page showing a gift's papers |
+
+## How the cards work
+
+A card is a plain NFC tag (NTAG215) holding one URL record, `https://<app>/c/<card ID>`. The ID is 16 random characters. There's no app and nothing runs on the card. An iPhone reads the tag in the background and opens the link in Safari.
+
+The server decides what a tap opens (`src/app/c/[cardId]/route.ts`):
+
+- **A blank card** goes to the start page with the card's ID, so the gift being made goes onto that card.
+- **A card holding a paid or chosen gift** goes to that gift's page.
+- **An ID in the wrong format** goes to a page saying the card isn't recognized.
+
+A card joins the database the first time a gift is paid for from it. A card holding a gift that's still waiting to be opened can't be taken over by someone else's gift, so that gift stays a link instead (`attachCard` in `src/lib/gifts.ts`). Once the kid chooses, their page offers **Give another gift with this card**, which clears the card and starts its next gift. The order already placed isn't touched. The link written on the card never changes, so a card is written once and never needs to be locked.
+
+Demo cards from `/c/demo` work the same way. Their IDs start with `demo`, which is what makes the gifter's last page offer to tap the card on screen.
 
 ## Make NFC cards
 
