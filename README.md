@@ -21,12 +21,16 @@ Sandbox buyer logins:
 
 NFC cards are tested on iPhone only. Android generally opens a card's link natively, but that's untested here, so use the gift link instead.
 
+## What the kid sees
+
+The gift opens as a wrapped present with a tag that reads "To" and "From". The tag flips over once to explain the game: unwrap every gift, then keep one. Tapping the tag flips it again at any time. The kid tears the paper with a finger, and the rip follows the finger's path. Each gift shows its photos, its colors or versions, and its description. Once every gift is open, the kid picks one, chooses a color if there is one, and can send a thank-you note. On a computer, a QR code in the corner opens the same page on a phone.
+
 ## How the AI works
 
 Claude does two jobs, and the kid never talks to it.
 
 - **Shopping chat (Claude Haiku 5.5):** a tool-using agent that saves the gifter's rules, searches real products through Channel3, and proposes 3 to 5 gifts with a reason for each. See `src/lib/shopper.ts`.
-- **Wrapping paper (Claude Sonnet 5.5):** after payment, it draws two simple shapes per gift that hint at what's inside without showing it. See `src/lib/wraps.ts`.
+- **Wrapping paper (Claude Sonnet 5.5):** after payment, it names the family of things each gift belongs to and draws four silhouettes from it, such as a t-shirt, sock, cap and trousers for clothing, or a car, dump truck, digger and cone for a toy truck. The paper hints at what's inside without showing it. See `src/lib/wraps.ts`.
 
 The AI makes the judgment calls, and code enforces the hard limits in `src/lib/rules.ts`: price, stock, new condition, US stores, blocked categories, things to avoid and size. Some limits follow the recipient's age: makeup and skincare open up at 13, and fragrance at 18. The prompt also shops for a child, a teenager or an adult based on the age. A dollar amount in the gifter's message becomes the limit in code, even if the model misses it. The model can only propose products that came back from a search in that turn.
 
@@ -46,6 +50,22 @@ Earlier runs found real problems, which were fixed before this run:
 
 A separate Claude Sonnet review also reads each option. It isn't a hard rule, and it varies from run to run. In the latest run it flagged 11 reasons (4%) for adding a detail the listing doesn't show, and 17 options (7%) as a poor age fit, usually a toy for younger kids. The blocked list matches words in titles and categories, so a product with an unusual title can still get through. The latest review flagged one like that, a pocket blade sharpener shown after a request for a knife.
 
+## How the money moves
+
+PayPal's Orders API charges the gifter for the priciest gift when they check out (`src/lib/paypal.ts`). When the kid chooses, the server rechecks the product, changes the gift's status in one atomic update so a double tap can't choose twice, and records the order (`src/lib/checkout.ts`). Any difference goes back through PayPal's Payments API as a refund on the original capture. The refund uses a fixed request ID per gift, so a retry can't refund twice, and a failed refund stays owed and is retried when the gifter opens their gift page. A canceled gift refunds in full.
+
+## Kids and privacy
+
+The kid has no account, never talks to the AI and types nothing except an optional thank-you. An adult makes every decision about what's offered and pays for it. Opening a gift link changes nothing, so link previews and email scanners can't spend a gift.
+
+## Built with
+
+- **Next.js 16** on **Render**, with Render Postgres. Locally, the app falls back to an embedded PGlite database in `.pglite/` when `DATABASE_URL` is blank.
+- **PayPal Server SDK** for Orders and Refunds, in the sandbox.
+- **Claude API** for the shopping agent and the wrapping paper.
+- **Channel3** for real product search.
+- **Claude Code** built the app, with the **APIMatic Context Plugin for PayPal** supplying PayPal SDK context.
+
 ## Run locally
 
 ```bash
@@ -54,29 +74,32 @@ cp .env.example .env   # then fill in the keys
 npm run dev
 ```
 
-## Test Channel3 search
-
-```bash
-npm run channel3:test
-```
-
-Set `QUERY` and `MAX_PRICE` to try other searches.
-
-## Fill a test gift for a demo
-
-```bash
-npx tsx --env-file=.env scripts/demo-picks.mts <gift link> --dry
-```
-
-Swaps the gifts in a paid, unopened gift for products with several photos, colors to pick and an age tag. Drop `--dry` to save. To change a gift on Render, put Render's external `DATABASE_URL` in `.env.render` and add `--env-file=.env.render` after the first `--env-file`.
+| Variable | What it's for |
+| --- | --- |
+| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | A PayPal sandbox app with Accept payments turned on |
+| `PAYPAL_API_BASE` | `https://api-m.sandbox.paypal.com` |
+| `ANTHROPIC_API_KEY` | The Claude API |
+| `CHANNEL3_API_KEY` | Channel3 product search |
+| `DATABASE_URL` | Postgres. Leave it blank to use PGlite locally |
+| `APP_URL` | The app's public URL, used in card and gift links |
 
 ## Deploy
 
 `render.yaml` defines the web service and Postgres database. Create a Blueprint from this repo in Render and fill in the prompted keys.
 
-## License
+## Scripts
 
-MIT
+Run these from the repo root. Local scripts use PGlite, which only one process can open, so stop `npm run dev` first. To run one against Render, put Render's external `DATABASE_URL` in `.env.render` and add `--env-file=.env.render` after `--env-file=.env`.
+
+| Command | What it does |
+| --- | --- |
+| `npm run channel3:test` | Runs one Channel3 search. Set `QUERY` and `MAX_PRICE` to try others |
+| `npm run eval` | The shopping eval above, against a running app |
+| `npm run cards -- 10` | Prints 10 NFC card links |
+| `npx tsx --env-file=.env scripts/demo-picks.mts <gift link> --dry` | Swaps a paid, unopened gift's picks for products with several photos, colors and an age tag. Drop `--dry` to save |
+| `npx tsx --env-file=.env scripts/reset-gift.mts <gift link>` | Undoes a kid's choice so a test gift can be opened again. A refund already sent stays recorded, so choosing again won't refund twice |
+| `npx tsx --env-file=.env scripts/redraw-wraps.mts <gift link>` | Draws a gift's wrapping paper again |
+| `npx tsx --env-file=.env scripts/preview-wraps.mts <gift link> <out.html>` | Writes an HTML page showing a gift's papers |
 
 ## Make NFC cards
 
@@ -99,3 +122,7 @@ A skin is the look of a kid's gift. Add an entry to `SKINS` and its ID to `SKIN_
 ## Before a real launch
 
 The gifter's money waits for the kid's choice, so check whether stored-value or gift-card rules apply. This doesn't affect the sandbox demo.
+
+## License
+
+MIT
