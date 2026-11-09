@@ -2,6 +2,7 @@ import { ApiError } from "@paypal/paypal-server-sdk";
 import { randomUUID } from "node:crypto";
 import { getProduct } from "./channel3";
 import type { VariantChoice } from "./chat";
+import { priceOnly, type Cost } from "./costs";
 import { db } from "./db";
 import { getGift, type Gift } from "./gifts";
 import { refundPayment } from "./paypal";
@@ -14,15 +15,27 @@ type ChosenOption = {
   price_cents: number;
   variants_json: VariantGroup[];
   variant_choice_json: VariantChoice;
+  cost_json: Cost | null;
 };
 
 export type ChosenGift = {
   title: string;
   image_url: string;
   price_cents: number;
+  merchant: string | null;
   variant_choice_json: VariantChoice;
   thank_you_note: string | null;
+  /** What sending it costs: price, shipping and tax. */
+  cost: Cost;
 };
+
+/** Keeps each pick's estimated cost, worked out when the gifter pays. */
+export async function saveCosts(picks: { id: string; cost: Cost }[]) {
+  const { query } = await db();
+  for (const pick of picks) {
+    await query("UPDATE options SET cost_json = $2 WHERE id = $1", [pick.id, JSON.stringify(pick.cost)]);
+  }
+}
 
 export type ChooseResult = "chosen" | "taken" | "unavailable" | "variant" | "failed";
 
@@ -48,7 +61,7 @@ export async function chooseGift(
 ): Promise<ChooseResult> {
   const { query } = await db();
   const { rows } = await query<ChosenOption>(
-    `SELECT id, channel3_id, title, price_cents, variants_json, variant_choice_json FROM options
+    `SELECT id, channel3_id, title, price_cents, variants_json, variant_choice_json, cost_json FROM options
      WHERE gift_id = $1 AND id = $2 AND selected`,
     [gift.id, optionId],
   );
@@ -67,10 +80,13 @@ export async function chooseGift(
     return "unavailable";
   }
 
+  // The gift's price plus its shipping and tax come out of what the gifter paid; the rest goes back.
+  const spent = (option.cost_json ?? priceOnly(option.price_cents)).total_cents;
+
   // One statement, so only one request can claim the gift, and a claim always has its order.
   const claimed = await query<{ id: string }>(
     `WITH claimed AS (
-       UPDATE gifts SET status = 'chosen', refund_cents = paid_cents - $3::integer
+       UPDATE gifts SET status = 'chosen', refund_cents = GREATEST(paid_cents - $3::integer, 0)
        WHERE id = $1 AND status = 'paid' RETURNING id
      ), choice AS (
        UPDATE options SET variant_choice_json = $4::jsonb, image_url = COALESCE($6, image_url)
@@ -82,7 +98,7 @@ export async function chooseGift(
     [
       gift.id,
       option.id,
-      option.price_cents,
+      spent,
       JSON.stringify(choice),
       randomUUID(),
       // The photo of the color they chose, so the thank-you screen shows that one.
@@ -127,15 +143,19 @@ export async function settleRefund(giftId: string) {
   }
 }
 
-export async function chosenGift(giftId: string) {
+export async function chosenGift(giftId: string): Promise<ChosenGift | null> {
   const { query } = await db();
-  const { rows } = await query<ChosenGift>(
-    `SELECT o.title, o.image_url, o.price_cents, o.variant_choice_json, r.thank_you_note
+  const { rows } = await query<Omit<ChosenGift, "cost"> & { cost_json: Cost | null }>(
+    `SELECT o.title, o.image_url, o.price_cents, o.merchant, o.variant_choice_json, o.cost_json,
+       r.thank_you_note
      FROM orders r JOIN options o ON o.id = r.option_id
      WHERE r.gift_id = $1 AND r.status = 'completed'`,
     [giftId],
   );
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  const { cost_json, ...chosen } = row;
+  return { ...chosen, cost: cost_json ?? priceOnly(row.price_cents) };
 }
 
 export async function saveThankYou(giftId: string, note: string) {

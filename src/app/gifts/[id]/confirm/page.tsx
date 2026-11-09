@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { selectedOptions, type ShownOption } from "@/lib/chat";
-import { formatDollars, getGift } from "@/lib/gifts";
+import { getGift } from "@/lib/gifts";
 import { variantSummary } from "@/lib/gifts-format";
 import { ConfirmForm } from "./confirm-form";
 
@@ -24,8 +24,6 @@ async function Confirm({ params, searchParams }: Props) {
   const picks = await selectedOptions(gift.id);
   if (!picks.length) redirect(`/gifts/${gift.id}/shop`);
 
-  const prices = picks.map((pick) => pick.price_cents);
-
   return (
     <ConfirmForm
       giftId={gift.id}
@@ -35,11 +33,10 @@ async function Confirm({ params, searchParams }: Props) {
         id: pick.id,
         title: pick.title,
         imageUrl: pick.image_url,
-        price: formatDollars(pick.price_cents),
+        priceCents: pick.price_cents,
+        merchant: pick.merchant,
         details: describe(pick),
       }))}
-      total={formatDollars(Math.max(...prices))}
-      pricesDiffer={new Set(prices).size > 1}
       savedName={gift.giver_name}
       savedNote={gift.note}
       savedShipping={gift.shipping_json}

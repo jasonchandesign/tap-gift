@@ -87,9 +87,10 @@ export function CartView({ giftId, recipientName, cart, error, onRemove, onBack 
             <span>You pay</span>
             <span className="tabular-nums">{total}</span>
           </div>
-          {cart.length > 1 && (
-            <p className="mt-1 text-sm text-soft">You only pay for what {recipientName} chooses.</p>
-          )}
+          <p className="mt-1 text-sm text-soft">
+            {cart.length > 1 ? `You only pay for what ${recipientName} chooses. ` : ""}Plus shipping and
+            tax, worked out at checkout.
+          </p>
           <Link href={`/gifts/${giftId}/confirm`} className="button mt-3 w-full">
             Check out
           </Link>

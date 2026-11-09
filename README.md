@@ -1,6 +1,6 @@
 # Tap Gift
 
-Tap Gift turns an NFC card or a shared link into a gift worth unwrapping. A gifter chats with an AI about what the kid loves and adds a few of its ideas to a cart. The gifter pays up front with PayPal for the priciest gift in the cart. The kid taps the card and tears open each gift, wrapped in paper the AI drew as a clue to what's inside, then chooses one. A cheaper choice refunds the difference. Fulfillment is simulated: this runs in the PayPal sandbox and nothing is bought from the store.
+Tap Gift turns an NFC card or a shared link into a gift worth unwrapping. A gifter chats with an AI about what the kid loves and adds a few of its ideas to a cart. The gifter pays up front with PayPal for the gift that costs the most to send, shipping and tax included. The kid taps the card and tears open each gift, wrapped in paper the AI drew as a clue to what's inside, then chooses one. A cheaper choice refunds whatever it doesn't use. Fulfillment is simulated: this runs in the PayPal sandbox and nothing is bought from the store.
 
 Built for the PayPal AI Hackathon. Sandbox only.
 
@@ -16,7 +16,7 @@ There are two ways to send a gift, and each has its own starting link. Use a pho
 3. Add two or three gifts at different prices to the cart, then check out.
 4. Pay with a PayPal sandbox buyer login from the list below. No real money moves.
 5. On the last page, **Demo notes** slide down from the top. Its button opens the gift as the kid would get it: **Open it as Sam** for a link, or **Tap the card as Sam** for a card.
-6. Tear open each gift, review them and choose one. If it's cheaper than the priciest gift, the difference is refunded in the sandbox.
+6. Tear open each gift, review them and choose one. If it costs less to send than the costliest gift, the difference is refunded in the sandbox.
 7. Go back to the first tab to see the kid's choice, the refund and the thank-you note. With a card, the kid's last page also offers **Give another gift with this card**, which clears the card and starts its next gift.
 
 Sandbox buyer logins:
@@ -56,7 +56,7 @@ A separate Claude Sonnet review also reads each option. It isn't a hard rule, an
 
 ## How the money moves
 
-PayPal's Orders API charges the gifter for the priciest gift when they check out (`src/lib/paypal.ts`). When the kid chooses, the server rechecks the product, changes the gift's status in one atomic update so a double tap can't choose twice, and records the order (`src/lib/checkout.ts`). Any difference goes back through PayPal's Payments API as a refund on the original capture. The refund uses a fixed request ID per gift, so a retry can't refund twice, and a failed refund stays owed and is retried when the gifter opens their gift page. A canceled gift refunds in full.
+At checkout each gift gets an estimated cost: its price, its store's shipping (free from $50, otherwise $5.99) and the ship-to state's base sales tax (`src/lib/costs.ts`). Channel3 gives prices but not shipping or tax, so both are estimates. PayPal's Orders API charges the gifter the highest of those costs, sent to PayPal as item, shipping and tax so its checkout shows the same breakdown (`src/lib/paypal.ts`). Each gift's cost is saved, so the refund later uses the same numbers. When the kid chooses, the server rechecks the product, changes the gift's status in one atomic update so a double tap can't choose twice, and records the order (`src/lib/checkout.ts`). The chosen gift's price, shipping and tax are deducted, and the rest goes back through PayPal's Payments API as a refund on the original capture. The refund uses a fixed request ID per gift, so a retry can't refund twice, and a failed refund stays owed and is retried when the gifter opens their gift page. A canceled gift refunds in full. The gifter's page shows a receipt: what they paid, the chosen gift's price, shipping and tax, and what came back. Because the charge always covers the costliest gift, a choice never needs a second charge.
 
 ## Kids and privacy
 

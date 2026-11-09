@@ -86,6 +86,7 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS turn integer NOT NULL DEFAULT 0;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS suggestions_json jsonb NOT NULL DEFAULT '[]';
 ALTER TABLE options ADD COLUMN IF NOT EXISTS description text NOT NULL DEFAULT '';
 ALTER TABLE options ADD COLUMN IF NOT EXISTS wrap_json jsonb;
+ALTER TABLE options ADD COLUMN IF NOT EXISTS cost_json jsonb;
 UPDATE gifts g SET card_id = c.id FROM cards c WHERE c.current_gift_id = g.id AND g.card_id IS NULL;
 UPDATE gifts SET status = 'draft' WHERE status IN ('saved', 'picked');
 UPDATE gifts SET status = 'chosen' WHERE status = 'charged';
