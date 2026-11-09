@@ -95,6 +95,30 @@ The kid has no account, never talks to the AI and types nothing except an option
 - **Stored-value rules:** the gifter's money waits for the kid's choice, so check whether stored-value or gift-card rules apply.
 - **Rate limits:** the live demo allows 10 new gifts and 40 chat turns per hour per IP.
 
+## Behind the scenes: making the card
+
+The card is a real, working product: a blank NFC card wearing a printed sticker, sold on a rack backing like a gift card. The print files are in `media/print`:
+
+- **`card-stickers-bleed.pdf`:** card fronts and backs with 1/8 in bleed. Glue a blank NTAG215 card to the back of the print, then trim around it. Print at 100% (Actual size).
+- **`card-stickers.pdf`:** the same sheet without bleed, with crop marks.
+- **`rack-backing.pdf`:** the rack backing. Cut on the solid line and the hang slot, fold on the dashed line, glue the halves together, then glue on the card.
+
+Then write a card link onto the card (`npm run cards`) and tap it with a phone.
+
+<table>
+  <tr>
+    <td><img src="media/photos/print-sheets.jpg" alt="The printed card stickers and rack backing on a cutting mat, next to a blank NFC card"></td>
+    <td><img src="media/photos/card-front-and-back.jpg" alt="A trimmed card front and back next to a blank NFC card"></td>
+  </tr>
+  <tr>
+    <td><img src="media/photos/backing-front.jpg" alt="The front of the rack backing: A gift they get to choose, with a spot to glue the card"></td>
+    <td><img src="media/photos/backing-back.jpg" alt="The back of the rack backing: how to load this card"></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="media/photos/card-and-backing.jpg" alt="A finished card held next to its rack backing"></td>
+  </tr>
+</table>
+
 ## Built with
 
 - **PayPal Server SDK:** Orders (capture with item, shipping and tax) and Payments (refunds), in the sandbox.
@@ -138,7 +162,7 @@ npm run dev
 | `src/app` | Pages and API routes: the gifter's flow (`new`, `gifts/[id]`), the kid's gift (`g/[token]`), card taps (`c/[cardId]`) and PayPal (`api/paypal`) |
 | `src/lib` | The shopping agent, rules, costs, PayPal, checkout and wrapping paper |
 | `scripts` | The eval, card links and test helpers |
-| `media/print` | Print files for the card and its rack backing |
+| `media/print`, `media/photos` | Print files for the card and its rack backing, and photos of the finished card |
 | `video` | The demo video, edited in code with Remotion. See `video/README.md` |
 
 ## License
