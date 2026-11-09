@@ -20,11 +20,12 @@ So adults pick between a gift that feels personal and one the kid actually wants
 
 Tap Gift lets the adult make the choices that matter and leaves the last pick to the kid.
 
-1. **The gifter shops with an AI.** They tell a chat what the kid is into ("skateboarding", "getting into photography", "something under $50"). It searches real, in-stock products and explains each pick. The gifter adds two or three options at different prices, and chooses sizes as they go, so the kid only chooses things like color.
-2. **They pay once.** The checkout shows each gift's price, its store's shipping and the sales tax. The gifter pays enough to cover the costliest one with PayPal.
-3. **The kid opens it.** They tap the card with their phone, or open the link. No app or account is needed. Each gift is wrapped in paper the AI drew as a clue to what's inside, and the kid tears it open with a finger. They flip through colors, then keep one and send a thank-you.
-4. **The balance comes back.** The chosen gift's price, shipping and tax come out, and PayPal refunds the rest to the gifter automatically. The gifter's page shows a receipt and the kid's note.
-5. **The card is reused.** Once the gift is chosen, the same card can be cleared and used for the next birthday or holiday.
+1. **The gifter starts a gift, digital or on a card.** They open the Tap Gift link, or pick up an NFC-enabled Tap Gift card. Each card holds a unique ID, so tapping it with a phone starts a gift that's saved to that card automatically. No app needed.
+2. **The gifter shops with an AI.** They tell a chat what the kid is into ("skateboarding", "getting into photography", "something under $50"). It searches real, in-stock products and explains each pick. The gifter adds two or three options at different prices, and chooses sizes as they go, so the kid only chooses things like color.
+3. **They pay once.** The checkout shows each gift's price, its store's shipping and the sales tax. The gifter pays enough to cover the costliest one with PayPal.
+4. **The kid opens it.** They tap the card with their phone, or open the link. No app or account is needed. Each gift is wrapped in paper the AI drew as a clue to what's inside, and the kid tears it open with a finger. They flip through colors, then keep one and send a thank-you.
+5. **The balance comes back.** The chosen gift's price, shipping and tax come out, and PayPal refunds the rest to the gifter automatically. The gifter's page shows a receipt and the kid's note.
+6. **The card is reused.** Once the gift is chosen, the same card can be cleared and used for the next birthday or holiday.
 
 ## Try it
 
