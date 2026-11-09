@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { chosenGift, settleRefund } from "@/lib/checkout";
+import { chosenGift, settleRefund, type ChosenGift } from "@/lib/checkout";
 import { selectedOptions } from "@/lib/chat";
 import { formatDollars, getGift, giftUrl, isDemoCard, type Gift } from "@/lib/gifts";
 import { skinStyle } from "@/lib/skins";
@@ -23,6 +23,33 @@ async function RefundNote({ gift }: { gift: Gift }) {
   return (await settleRefund(gift.id))
     ? `${amount} is going back to your PayPal.`
     : `We still owe you ${amount}. Reload this page to try again.`;
+}
+
+function Line({ label, cents, strong }: { label: React.ReactNode; cents: number; strong?: boolean }) {
+  return (
+    <div className={`flex justify-between gap-4 py-1 ${strong ? "font-bold" : ""}`}>
+      <dt>{label}</dt>
+      <dd className="tabular-nums">{cents === 0 && !strong ? "Free" : formatDollars(cents)}</dd>
+    </div>
+  );
+}
+
+/** What the gifter paid, what the kid's choice really cost, and what goes back. */
+function Receipt({ gift, chosen }: { gift: Gift; chosen: ChosenGift }) {
+  const { cost } = chosen;
+  const paid = gift.paid_cents ?? cost.total_cents;
+  return (
+    <dl className="mt-4 rounded-2xl border border-line bg-paper px-4 py-3">
+      <Line label="You paid" cents={paid} strong />
+      <div className="my-1 border-t border-line" />
+      <Line label={`${gift.recipient_name}'s gift`} cents={cost.item_cents} />
+      <Line label={`Shipping${chosen.merchant ? ` from ${chosen.merchant}` : ""}`} cents={cost.shipping_cents} />
+      {cost.tax_rate > 0 && <Line label={`Tax (${cost.state}, ${cost.tax_rate}%)`} cents={cost.tax_cents} />}
+      <Line label="Gift total" cents={cost.total_cents} />
+      <div className="my-1 border-t border-line" />
+      <Line label="Back to your PayPal" cents={gift.refund_cents} strong />
+    </dl>
+  );
 }
 
 async function Result({ gift }: { gift: Gift }) {
@@ -49,10 +76,10 @@ async function Result({ gift }: { gift: Gift }) {
           ` (${Object.values(chosen.variant_choice_json).join(", ")})`}
         .
       </p>
-      <p className="mt-1 text-soft">
-        You paid {formatDollars(gift.paid_cents ?? chosen.price_cents)}. <RefundNote gift={gift} />{" "}
-        Shipping to {gift.shipping_json?.city}, {gift.shipping_json?.state} is simulated in this
-        demo.
+      <Receipt gift={gift} chosen={chosen} />
+      <p className="mt-2 text-sm text-soft">
+        <RefundNote gift={gift} /> Shipping and tax are estimates, and shipping to{" "}
+        {gift.shipping_json?.city}, {gift.shipping_json?.state} is simulated in this demo.
       </p>
       {chosen.thank_you_note && (
         <blockquote className="mt-6 rounded-2xl border border-line bg-paper p-5 text-lg">

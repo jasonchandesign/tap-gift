@@ -1,6 +1,8 @@
 import { after } from "next/server";
 import { z } from "zod";
+import { saveCosts } from "@/lib/checkout";
 import { selectedOptions } from "@/lib/chat";
+import { costliest, estimateCost } from "@/lib/costs";
 import { appUrl, getGift, saveDelivery, setPayPalOrder, ShippingSchema } from "@/lib/gifts";
 import { createPayment } from "@/lib/paypal";
 import { drawWraps } from "@/lib/wraps";
@@ -31,9 +33,17 @@ export async function POST(request: Request) {
 
   try {
     await saveDelivery(gift.id, giverName, note, shipping);
+    // Each pick's price, shipping and tax, kept so the refund later uses the same numbers.
+    const costed = picks.map((pick) => ({ ...pick, cost: estimateCost(pick.price_cents, shipping.state) }));
+    await saveCosts(costed);
+    // The pick that costs the most to send, so any choice is covered. A cheaper one refunds the rest.
+    const most = costliest(costed);
     const { orderId, approveUrl } = await createPayment({
-      // The priciest pick, so any choice is covered. A cheaper choice refunds the difference.
-      amountCents: Math.max(...picks.map((pick) => pick.price_cents)),
+      cost: most.cost,
+      item: {
+        name: `A gift for ${gift.recipient_name}: their pick of ${picks.length}`,
+        description: picks.map((pick) => pick.title).join(" / "),
+      },
       shipping,
       returnUrl: `${appUrl()}/api/paypal/return?gift=${gift.id}`,
       cancelUrl: `${appUrl()}/gifts/${gift.id}/confirm`,

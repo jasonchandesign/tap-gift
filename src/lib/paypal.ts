@@ -2,6 +2,7 @@ import {
   CheckoutPaymentIntent,
   Client,
   Environment,
+  ItemCategory,
   OrdersController,
   PaymentsController,
   PaypalExperienceUserAction,
@@ -9,6 +10,7 @@ import {
   RefundStatus,
 } from "@paypal/paypal-server-sdk";
 import { randomUUID } from "node:crypto";
+import type { Cost } from "./costs";
 import type { Shipping } from "./gifts";
 
 let client: Client | undefined;
@@ -29,14 +31,18 @@ function usd(cents: number) {
   return { currencyCode: "USD", value: (cents / 100).toFixed(2) };
 }
 
-/** Starts a payment. Nothing is taken until the buyer approves and we capture the order. */
+/**
+ * Starts a payment. Nothing is taken until the buyer approves and we capture the order.
+ * The cost is split into item, shipping and tax, so PayPal's checkout shows the same breakdown.
+ */
 export async function createPayment(payment: {
-  amountCents: number;
+  cost: Cost;
+  item: { name: string; description: string };
   shipping: Shipping;
   returnUrl: string;
   cancelUrl: string;
 }) {
-  const { shipping, returnUrl, cancelUrl } = payment;
+  const { cost, shipping, returnUrl, cancelUrl } = payment;
   const { result } = await new OrdersController(paypal()).createOrder({
     paypalRequestId: randomUUID(),
     body: {
@@ -44,7 +50,25 @@ export async function createPayment(payment: {
       purchaseUnits: [
         {
           description: "A Tap Gift",
-          amount: usd(payment.amountCents),
+          amount: {
+            ...usd(cost.total_cents),
+            breakdown: {
+              itemTotal: usd(cost.item_cents),
+              shipping: usd(cost.shipping_cents),
+              taxTotal: usd(cost.tax_cents),
+            },
+          },
+          items: [
+            {
+              // PayPal limits these to 127 characters.
+              name: payment.item.name.slice(0, 127),
+              description: payment.item.description.slice(0, 127),
+              unitAmount: usd(cost.item_cents),
+              tax: usd(cost.tax_cents),
+              quantity: "1",
+              category: ItemCategory.PhysicalGoods,
+            },
+          ],
           shipping: {
             name: { fullName: shipping.name },
             address: {

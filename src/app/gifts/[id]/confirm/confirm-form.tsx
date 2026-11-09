@@ -2,17 +2,24 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { costliest, estimateCost, type Cost } from "@/lib/costs";
 import type { Shipping } from "@/lib/gifts";
+import { formatDollars } from "@/lib/gifts-format";
 
-type Pick = { id: string; title: string; imageUrl: string; price: string; details: string };
+type Pick = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  priceCents: number;
+  merchant: string;
+  details: string;
+};
 
 type Props = {
   giftId: string;
   recipientName: string;
   recipientLastName: string;
   picks: Pick[];
-  total: string;
-  pricesDiffer: boolean;
   savedName: string;
   savedNote: string;
   savedShipping: Shipping | null;
@@ -68,8 +75,30 @@ function Summary({ label, editLabel, onEdit, children }: SummaryProps) {
   );
 }
 
+function Row({ label, cents }: { label: string; cents: number }) {
+  return (
+    <div className="flex justify-between gap-4 text-sm">
+      <dt>{label}</dt>
+      <dd className="tabular-nums">{cents === 0 ? "Free" : formatDollars(cents)}</dd>
+    </div>
+  );
+}
+
+/** One pick's cost to send: price, its store's shipping and tax. */
+function CostLine({ cost, merchant }: { cost: Cost; merchant: string }) {
+  const shipping = cost.shipping_cents ? `${formatDollars(cost.shipping_cents)} shipping` : "free shipping";
+  return (
+    <p className="text-sm tabular-nums text-soft">
+      {formatDollars(cost.item_cents)} + {shipping}
+      {cost.tax_cents > 0 && ` + ${formatDollars(cost.tax_cents)} tax`} ={" "}
+      <span className="font-semibold text-ink">{formatDollars(cost.total_cents)}</span>
+      {merchant && <span className="block">Ships from {merchant}</span>}
+    </p>
+  );
+}
+
 export function ConfirmForm(props: Props) {
-  const { giftId, recipientName, picks, total, pricesDiffer } = props;
+  const { giftId, recipientName } = props;
   const finished = !!(props.savedName && props.savedNote && props.savedShipping);
   const [step, setStep] = useState<Step>(finished ? "review" : "message");
   const [giverName, setGiverName] = useState(props.savedName);
@@ -88,6 +117,12 @@ export function ConfirmForm(props: Props) {
     props.paypalFailed ? "We couldn't finish the payment. Please try again." : "",
   );
   const [busy, setBusy] = useState(false);
+
+  // The same estimate the pay route charges: each pick sent to this state, and the costliest one.
+  const picks = props.picks.map((pick) => ({ ...pick, cost: estimateCost(pick.priceCents, shipping.state) }));
+  const most = costliest(picks);
+  const total = formatDollars(most.cost.total_cents);
+  const costsDiffer = new Set(picks.map((pick) => pick.cost.total_cents)).size > 1;
 
   function address(field: keyof Shipping) {
     return {
@@ -215,8 +250,8 @@ export function ConfirmForm(props: Props) {
             />
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 font-bold leading-snug">{pick.title}</p>
-              <p className="text-sm tabular-nums text-soft">{pick.price}</p>
               {pick.details && <p className="text-sm text-soft">{pick.details}</p>}
+              <CostLine cost={pick.cost} merchant={pick.merchant} />
             </div>
           </li>
         ))}
@@ -234,15 +269,20 @@ export function ConfirmForm(props: Props) {
           {shipping.city}, {shipping.state} {shipping.zip}
         </p>
       </Summary>
-      <div className="mt-4 flex justify-between text-xl font-bold">
+      <dl className="mt-4 text-soft">
+        <Row label={costsDiffer ? "Costliest gift" : "Gift"} cents={most.cost.item_cents} />
+        <Row label="Shipping (est.)" cents={most.cost.shipping_cents} />
+        <Row label={`Tax (est., ${most.cost.state} ${most.cost.tax_rate}%)`} cents={most.cost.tax_cents} />
+      </dl>
+      <div className="mt-1 flex justify-between border-t border-line pt-2 text-xl font-bold">
         <span>Total</span>
         <span className="tabular-nums">{total}</span>
       </div>
-      {pricesDiffer && (
-        <p className="mt-1 text-sm text-soft">
-          Pay {total} today. The balance will be refunded after {recipientName} chooses a gift.
-        </p>
-      )}
+      <p className="mt-1 text-sm text-soft">
+        {costsDiffer
+          ? `Enough for any of them. After ${recipientName} chooses, you get back whatever their gift doesn't use, shipping and tax included.`
+          : `Covers whichever one ${recipientName} chooses, shipping and tax included.`}
+      </p>
       {error && (
         <p role="alert" className="mt-3 text-alert">
           {error}
