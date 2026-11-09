@@ -16,6 +16,8 @@ Buying for a kid usually means guessing. Ask a 13-year-old what they want and yo
 
 So adults pick between a gift that feels personal and one the kid actually wants.
 
+It comes up all the time: grandparents and relatives who don't know what a kid is into this year, and parents buying for a classmate's birthday party.
+
 ## The solution
 
 Tap Gift lets the adult make the choices that matter and leaves the last pick to the kid.
