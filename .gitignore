@@ -44,3 +44,17 @@ next-env.d.ts
 # local embedded database
 /.pglite/
 eval-results.json
+
+# Raw Simulator takes for the demo video (large)
+media/video/screen/*.mov
+
+# Demo video project: dependencies, renders and large clips
+video/node_modules/
+video/out/
+video/public/*.mp4
+
+# Demo video: AI handoff experiments and unused music options (the used clip lives in video/public)
+media/video/s5a/
+video/public/music/b-keys.mp3
+video/public/music/c-ukulele.mp3
+media/video/screen/*.png
