@@ -11,8 +11,6 @@ services:
         fromDatabase:
           name: tap-gift-db
           property: connectionString
-      - key: PAYPAL_API_BASE
-        value: https://api-m.sandbox.paypal.com
       - key: PAYPAL_CLIENT_ID
         sync: false
       - key: PAYPAL_CLIENT_SECRET

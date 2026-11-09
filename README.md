@@ -1,76 +1,109 @@
 # Tap Gift
 
-Tap Gift turns an NFC card or a shared link into a gift worth unwrapping. A gifter chats with an AI about what the kid loves and adds a few of its ideas to a cart. The gifter pays up front with PayPal for the gift that costs the most to send, shipping and tax included. The kid taps the card and tears open each gift, wrapped in paper the AI drew as a clue to what's inside, then chooses one. A cheaper choice refunds whatever it doesn't use. Fulfillment is simulated: this runs in the PayPal sandbox and nothing is bought from the store.
+**A gift they get to choose, wrapped like a surprise.**
 
-Built for the PayPal AI Hackathon. Sandbox only.
+An adult picks a few real gifts with an AI shopper and pays once with PayPal. The kid unwraps every one on their phone, keeps the one they love, and the adult gets back whatever it didn't cost. The gift can live on a reusable NFC card or go out as a link.
+
+Built for the PayPal AI Hackathon. Everything runs in the PayPal sandbox, and nothing is really bought or shipped.
+
+- **Demo video (2:38):** https://youtu.be/fh6QKQtwcVo
+- **Digital only (a gift link):** https://tap-gift.onrender.com
+- **Tap card experience (a pretend card):** https://tap-gift.onrender.com/c/demo
+
+## The problem
+
+Buying for a kid usually means guessing. Ask a 13-year-old what they want and you get "I don't know." Guess wrong and the gift sits in a drawer, or someone deals with a return. The safe fallback is a gift card. It lets them choose, but it shows no thought and has nothing to open, and the kid can spend it on anything, including things the adult wouldn't buy.
+
+So adults pick between a gift that feels personal and one the kid actually wants.
+
+## The solution
+
+Tap Gift lets the adult make the choices that matter and leaves the last pick to the kid.
+
+1. **The gifter shops with an AI.** They tell a chat what the kid is into ("skateboarding", "getting into photography", "something under $50"). It searches real, in-stock products and explains each pick. The gifter adds two or three options at different prices, and chooses sizes as they go, so the kid only chooses things like color.
+2. **They pay once.** The checkout shows each gift's price, its store's shipping and the sales tax. The gifter pays enough to cover the costliest one with PayPal.
+3. **The kid opens it.** They tap the card with their phone, or open the link. No app or account is needed. Each gift is wrapped in paper the AI drew as a clue to what's inside, and the kid tears it open with a finger. They flip through colors, then keep one and send a thank-you.
+4. **The balance comes back.** The chosen gift's price, shipping and tax come out, and PayPal refunds the rest to the gifter automatically. The gifter's page shows a receipt and the kid's note.
+5. **The card is reused.** Once the gift is chosen, the same card can be cleared and used for the next birthday or holiday.
 
 ## Try it
 
-There are two ways to send a gift, and each has its own starting link. Use a phone if you can. A computer works too. No physical card is needed, and each person creates their own gift.
+Use a phone if you can; a computer works too. No physical card is needed, and each person creates their own gift.
 
-- **As a link:** https://tap-gift.onrender.com
-- **On a card:** https://tap-gift.onrender.com/c/demo gives you a pretend blank card, as if you had just tapped a real one.
+| Experience | Start here | How the kid opens it |
+| --- | --- | --- |
+| **Digital only** | https://tap-gift.onrender.com | A gift link, shared by text or email |
+| **Tap card** | https://tap-gift.onrender.com/c/demo | A pretend blank card, as if you'd just tapped a real one |
 
 1. Tap **Start a gift**, enter a kid's name and age, and pick a wrap.
-2. Tell the chat what the kid loves. Try a refinement like "under $30" or "no screens".
-3. Add two or three gifts at different prices to the cart, then check out.
-4. Pay with a PayPal sandbox buyer login from the list below. No real money moves.
-5. On the last page, **Demo notes** slide down from the top. Its button opens the gift as the kid would get it: **Open it as Sam** for a link, or **Tap the card as Sam** for a card.
-6. Tear open each gift, review them and choose one. If it costs less to send than the costliest gift, the difference is refunded in the sandbox.
-7. Go back to the first tab to see the kid's choice, the refund and the thank-you note. With a card, the kid's last page also offers **Give another gift with this card**, which clears the card and starts its next gift.
+2. Tell the chat what the kid loves, then refine it, e.g. "under $30" or "no screens".
+3. Add two or three gifts at different prices and check out.
+4. Pay with a PayPal sandbox buyer account. The logins are in the Devpost testing instructions. No real money moves.
+5. On the last page, **Demo notes** slide down from the top. Their button opens the gift as the kid would get it: **Open it as Sam** for a link, or **Tap the card as Sam** for a card.
+6. Tear open each gift, then choose one. Pick a cheaper one to see the refund.
+7. Go back to the first tab for the receipt, the refund and the thank-you note.
 
-Sandbox buyer logins:
+Real NFC cards are tested on iPhone. Android usually opens a card's link too, but that's untested, so use the link there.
 
-<!-- Add the tested sandbox logins here before submitting. -->
+## How it works
 
-NFC cards are tested on iPhone only. Android generally opens a card's link natively, but that's untested here, so use the gift link instead.
+Next.js 16 on Render with Postgres. Claude runs the AI, Channel3 provides product search, and the PayPal Server SDK handles payments.
 
-## What the kid sees
+```
+Gifter ── chat ──▶ Claude Haiku (tool use) ──▶ Channel3 search ──▶ rules in code ──▶ 3–5 picks
+       ── pay ───▶ PayPal Orders API (capture: item + shipping + tax)
+                    └▶ Claude Sonnet draws a wrapping paper for each gift
+Kid ──── tap/link ▶ unwrap, choose ──▶ order recorded ──▶ PayPal Payments API refund of the rest
+```
 
-The gift opens as a wrapped present with a tag that reads "To" and "From". The tag flips over once to explain the game: unwrap every gift, then keep one. Tapping the tag flips it again at any time. The kid tears the paper with a finger, and the rip follows the finger's path. Each gift shows its photos, its colors or versions, and its description. Once every gift is open, the kid picks one, chooses a color if there is one, and can send a thank-you note. On a computer, a QR code in the corner opens the same page on a phone.
+### The AI shopper, and the limits it can't break
 
-## How the AI works
+- **Shopping agent** (Claude Haiku 5.5, `src/lib/shopper.ts`): a tool-using agent that saves the gifter's rules, searches Channel3 and proposes 3 to 5 gifts with a reason for each. It can only propose products that came back from a search in that same turn, so it can't invent one.
+- **Hard limits live in code, not the prompt** (`src/lib/rules.ts`): price, in stock, new condition, US stores, blocked categories, things to avoid and size.
+  - A dollar amount in the gifter's message becomes a limit in code, even if the model misses it.
+  - Some limits follow the kid's age, e.g. makeup opens up at 13 and fragrance at 18.
+- **Suggestion chips:** the tappable ideas start from a fixed list per age group. AI-written follow-ups are filtered for length, money talk and off-limits topics.
+- **Per-gift budget:** each gift gets 20 AI turns.
+- **Wrapping paper** (Claude Sonnet 5.5, `src/lib/wraps.ts`): after payment, it names the family each gift belongs to and draws four silhouettes from it, such as a t-shirt, sock, cap and trousers for clothing. The paper hints at what's inside without giving it away.
+- **Eval** (`npm run eval`): 30 scripted chats, including requests for things the rules block (a knife, makeup for a young kid, a gift card). The latest run had **0 rule violations across 250 options**. A separate Claude review flags softer issues, like a reason claiming a detail the listing doesn't show, about 4% of the time.
 
-Claude does two jobs, and the kid never talks to it.
+### How the money moves
 
-- **Shopping chat (Claude Haiku 5.5):** a tool-using agent that saves the gifter's rules, searches real products through Channel3, and proposes 3 to 5 gifts with a reason for each. See `src/lib/shopper.ts`.
-- **Wrapping paper (Claude Sonnet 5.5):** after payment, it names the family of things each gift belongs to and draws four silhouettes from it, such as a t-shirt, sock, cap and trousers for clothing, or a car, dump truck, digger and cone for a toy truck. The paper hints at what's inside without showing it. See `src/lib/wraps.ts`.
+- **Cost of each gift** (`src/lib/costs.ts`): at checkout each gift gets a cost: price, the store's shipping and the ship-to state's sales tax. Channel3 provides prices but not shipping or tax, so both are estimates (free shipping from $50, otherwise $5.99, and the state's base rate).
+- **One charge** (`src/lib/paypal.ts`): the Orders API charges the highest of those costs. It's sent to PayPal as item, shipping and tax, so PayPal's own checkout shows the same breakdown. Each gift's cost is saved for later.
+- **Choosing** (`src/lib/checkout.ts`): the server rechecks that the product is still available. It then claims the gift in a single database update, so a double tap can't choose twice, and records the order.
+- **Refund:** the chosen gift's saved cost is deducted, and the rest goes back through the Payments API as a refund on the original capture.
+  - The refund uses a fixed request ID per gift, so a retry can never refund twice.
+  - A failed refund stays owed, and is retried when the gifter opens their page.
+- **No second charge:** the charge always covers the costliest gift, so a choice never needs more money. Charging up front and refunding also beats a PayPal authorization, whose hold lasts about 3 days, at most 29 with a reauthorization, while a kid may take weeks to open a gift.
 
-The AI makes the judgment calls, and code enforces the hard limits in `src/lib/rules.ts`: price, stock, new condition, US stores, blocked categories, things to avoid and size. Some limits follow the recipient's age: makeup and skincare open up at 13, and fragrance at 18. The prompt also shops for a child, a teenager or an adult based on the age. A dollar amount in the gifter's message becomes the limit in code, even if the model misses it. The model can only propose products that came back from a search in that turn.
+### The card
 
-The tappable ideas in the chat are canned, not written by the AI. `src/lib/starters.ts` has a few per age group (kid, teen, adult) and for girl, boy or anyone. After a reply, the chat offers more like these, an idea the gifter hasn't tried and a lower price when some gifts cost more. Once the canned ideas run out, the AI suggests new interests, and code drops any that are long, mention money or name something off-limits at that age. The AI's prompt also lists what's off-limits at the recipient's age, so it can say so and suggest something close when a gifter asks. Each gift gets 20 AI turns, enough for most gifters, which caps anyone gaming it.
+- **What's on it:** a card is a plain NFC tag (NTAG215) holding one URL, `https://<app>/c/<card ID>`, with a random 16-character ID. Nothing runs on the card, and an iPhone opens the link in Safari with no app.
+- **What a tap opens** (`src/app/c/[cardId]/route.ts`): a blank card starts a new gift on that card, and a card holding a gift opens it. A card holding an unopened gift can't be taken over by someone else's.
+- **Written once:** the link on the card never changes, so a card is written once and never locked. Clearing a card after the kid chooses lets it carry the next gift, and leaves the order already placed untouched.
 
-## Shopping eval
+### Kids and privacy
 
-`npm run eval` runs 30 scripted chats against a running app: 10 gifter prompts with 3 refinements each (a price limit, something to avoid and a clothing size). Three of the prompts ask for things the rules block: a knife or BB gun, makeup and perfume, and a gift card. The script checks every option against the limits stated in the chat, not the limits the app saved.
+The kid has no account, never talks to the AI and types nothing except an optional thank-you. An adult makes every decision about what's offered and pays for it. Opening a gift link changes nothing, so link previews and email scanners can't spend a gift. The kid's last name is used only for the shipping label.
 
-Latest run: **0 rule violations across 250 options in 60 chat turns.** The checks cover price limits, blocked terms and avoided terms in product titles, US stores, sizes and money talk in reasons.
+### What's simulated, and what a real launch needs
 
-Earlier runs found real problems, which were fixed before this run:
-
-- A stated dollar limit the model failed to save, which let two products over the limit through.
-- Body sprays, fragrances listed as "EDT", a fragrance gift set and a toy shotgun that got past the blocked list.
-- A reason that mentioned a lower cost.
-
-A separate Claude Sonnet review also reads each option. It isn't a hard rule, and it varies from run to run. In the latest run it flagged 11 reasons (4%) for adding a detail the listing doesn't show, and 17 options (7%) as a poor age fit, usually a toy for younger kids. The blocked list matches words in titles and categories, so a product with an unusual title can still get through. The latest review flagged one like that, a pocket blade sharpener shown after a request for a knife.
-
-## How the money moves
-
-At checkout each gift gets an estimated cost: its price, its store's shipping (free from $50, otherwise $5.99) and the ship-to state's base sales tax (`src/lib/costs.ts`). Channel3 gives prices but not shipping or tax, so both are estimates. PayPal's Orders API charges the gifter the highest of those costs, sent to PayPal as item, shipping and tax so its checkout shows the same breakdown (`src/lib/paypal.ts`). Each gift's cost is saved, so the refund later uses the same numbers. When the kid chooses, the server rechecks the product, changes the gift's status in one atomic update so a double tap can't choose twice, and records the order (`src/lib/checkout.ts`). The chosen gift's price, shipping and tax are deducted, and the rest goes back through PayPal's Payments API as a refund on the original capture. The refund uses a fixed request ID per gift, so a retry can't refund twice, and a failed refund stays owed and is retried when the gifter opens their gift page. A canceled gift refunds in full. The gifter's page shows a receipt: what they paid, the chosen gift's price, shipping and tax, and what came back. Because the charge always covers the costliest gift, a choice never needs a second charge.
-
-## Kids and privacy
-
-The kid has no account, never talks to the AI and types nothing except an optional thank-you. An adult makes every decision about what's offered and pays for it. Opening a gift link changes nothing, so link previews and email scanners can't spend a gift.
+- **Fulfillment is simulated.** The order is recorded, but nothing is bought from the store or shipped.
+- **Shipping and tax are estimates.** A real launch would use each store's checkout or a tax service.
+- **Thank-you notes** appear on the gifter's page; a real launch would email them.
+- **Stored-value rules:** the gifter's money waits for the kid's choice, so check whether stored-value or gift-card rules apply.
+- **Rate limits:** the live demo allows 10 new gifts and 40 chat turns per hour per IP.
 
 ## Built with
 
-- **Next.js 16** on **Render**, with Render Postgres. Locally, the app falls back to an embedded PGlite database in `.pglite/` when `DATABASE_URL` is blank.
-- **PayPal Server SDK** for Orders and Refunds, in the sandbox.
-- **Claude API** for the shopping agent and the wrapping paper.
-- **Channel3** for real product search.
-- **Claude Code** built the app, with the **APIMatic Context Plugin for PayPal** supplying PayPal SDK context.
+- **PayPal Server SDK:** Orders (capture with item, shipping and tax) and Payments (refunds), in the sandbox.
+- **Claude API:** Haiku 5.5 for the shopping agent, Sonnet 5.5 for the wrapping paper.
+- **Channel3:** real product search.
+- **Next.js 16** on **Render** with Render Postgres. Locally it falls back to an embedded PGlite database.
+- **Claude Code** built the app, with the **APIMatic Context Plugin for PayPal** for PayPal SDK context.
 
-## Run locally
+## Run it yourself
 
 ```bash
 npm install
@@ -81,65 +114,32 @@ npm run dev
 | Variable | What it's for |
 | --- | --- |
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | A PayPal sandbox app with Accept payments turned on |
-| `PAYPAL_API_BASE` | `https://api-m.sandbox.paypal.com` |
 | `ANTHROPIC_API_KEY` | The Claude API |
 | `CHANNEL3_API_KEY` | Channel3 product search |
 | `DATABASE_URL` | Postgres. Leave it blank to use PGlite locally |
 | `APP_URL` | The app's public URL, used in card and gift links |
 
-## Deploy
+**Deploy:** `render.yaml` defines the web service and the database. Create a Blueprint from this repo in Render and fill in the prompted keys.
 
-`render.yaml` defines the web service and Postgres database. Create a Blueprint from this repo in Render and fill in the prompted keys.
-
-## Scripts
-
-Run these from the repo root. Local scripts use PGlite, which only one process can open, so stop `npm run dev` first. To run one against Render, put Render's external `DATABASE_URL` in `.env.render` and add `--env-file=.env.render` after `--env-file=.env`.
+**Scripts** (from the repo root; PGlite allows one process at a time, so stop `npm run dev` first):
 
 | Command | What it does |
 | --- | --- |
-| `npm run channel3:test` | Runs one Channel3 search. Set `QUERY` and `MAX_PRICE` to try others |
-| `npm run eval` | The shopping eval above, against a running app |
-| `npm run cards -- 10` | Prints 10 NFC card links |
-| `npx tsx --env-file=.env scripts/demo-picks.mts <gift link> --dry` | Swaps a paid, unopened gift's picks for products with several photos, colors and an age tag. Drop `--dry` to save |
-| `npx tsx --env-file=.env scripts/reset-gift.mts <gift link>` | Undoes a kid's choice so a test gift can be opened again. A refund already sent stays recorded, so choosing again won't refund twice |
+| `npm run eval` | The shopping eval, against a running app |
+| `npm run cards -- 10` | Prints 10 card links to write onto blank NFC cards with an app like NFC Tools. Don't lock them |
+| `npm run channel3:test` | Runs one Channel3 search |
+| `npx tsx --env-file=.env scripts/reset-gift.mts <gift link>` | Undoes a kid's choice so a test gift can be opened again |
 | `npx tsx --env-file=.env scripts/redraw-wraps.mts <gift link>` | Draws a gift's wrapping paper again |
-| `npx tsx --env-file=.env scripts/preview-wraps.mts <gift link> <out.html>` | Writes an HTML page showing a gift's papers |
 
-## How the cards work
+## Repo layout
 
-A card is a plain NFC tag (NTAG215) holding one URL record, `https://<app>/c/<card ID>`. The ID is 16 random characters. There's no app and nothing runs on the card. An iPhone reads the tag in the background and opens the link in Safari.
-
-The server decides what a tap opens (`src/app/c/[cardId]/route.ts`):
-
-- **A blank card** goes to the start page with the card's ID, so the gift being made goes onto that card.
-- **A card holding a paid or chosen gift** goes to that gift's page.
-- **An ID in the wrong format** goes to a page saying the card isn't recognized.
-
-A card joins the database the first time a gift is paid for from it. A card holding a gift that's still waiting to be opened can't be taken over by someone else's gift, so that gift stays a link instead (`attachCard` in `src/lib/gifts.ts`). Once the kid chooses, their page offers **Give another gift with this card**, which clears the card and starts its next gift. The order already placed isn't touched. The link written on the card never changes, so a card is written once and never needs to be locked.
-
-Demo cards from `/c/demo` work the same way. Their IDs start with `demo`, which is what makes the gifter's last page offer to tap the card on screen.
-
-## Make NFC cards
-
-Each card is written once, ever. Its link stays the same, and the gift it opens changes.
-
-```bash
-npm run cards -- 10
-```
-
-This prints 10 links. Write one onto each blank card with the free NFC Tools app: Write, Add a record, URL/URI, paste the link, OK, then Write and hold the card to the phone. Don't use Lock tag, because locking is permanent.
-
-## Thank-you notes
-
-In this demo, the kid's thank-you is saved to the gifter's gift page and isn't emailed. A real launch would send it to the email on the gifter's PayPal account.
-
-## Add a skin
-
-A skin is the look of a kid's gift. Add an entry to `SKINS` and its ID to `SKIN_IDS` in `src/lib/skins.ts`, and it appears in the gifter's picker and on the kid's pages. Boy or girl suggests a skin and sets the chat's wording. It isn't sent to the AI.
-
-## Before a real launch
-
-The gifter's money waits for the kid's choice, so check whether stored-value or gift-card rules apply. This doesn't affect the sandbox demo.
+| Path | What's there |
+| --- | --- |
+| `src/app` | Pages and API routes: the gifter's flow (`new`, `gifts/[id]`), the kid's gift (`g/[token]`), card taps (`c/[cardId]`) and PayPal (`api/paypal`) |
+| `src/lib` | The shopping agent, rules, costs, PayPal, checkout and wrapping paper |
+| `scripts` | The eval, card links and test helpers |
+| `media/print` | Print files for the card and its rack backing |
+| `video` | The demo video, edited in code with Remotion. See `video/README.md` |
 
 ## License
 
